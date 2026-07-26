@@ -1,0 +1,53 @@
+---
+title: Grammar sweep
+---
+doctype html
+html
+  head
+    title Slim Syntax
+    css:
+      .card { color: red; }
+    scss:
+      .card { .inner { color: blue; } }
+    sass:
+      .card
+        color: green
+    less:
+      .card { color: teal; }
+    javascript:
+      const n = 1;
+    coffee:
+      n = 1
+  body
+    / a code comment
+      swallowed by the comment
+    /! an html comment
+      also part of the html comment
+    /[if IE]
+      p Rendered inside a conditional comment
+    #main.container
+      .card#first data-role="card"
+        p.lead Text after a tag
+        span = user.name
+        == raw_helper
+        =' spaced_helper
+        - if signed_in?
+          p Signed in
+        - elsif guest?
+          p Guest
+        - else
+          p Signed out
+        - items.each do |item|
+          li = item
+        li: a href="/" Home
+    markdown:
+      # Heading
+    erb:
+      <%= hello %>
+    ruby:
+      answer = 42
+    | Verbatim text line
+      continued verbatim
+    ' Verbatim with trailing space
+    \= not an output line
+    <div>Inline HTML</div>

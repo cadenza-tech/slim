@@ -1,0 +1,38 @@
+>- items = [1,
+#^ text.slim meta.line.ruby.slim
+# ^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+#            ^ text.slim meta.line.ruby.slim source.ruby.embedded.slim punctuation.separator.continuation.slim
+>  2,
+#^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+#   ^ text.slim meta.line.ruby.slim source.ruby.embedded.slim punctuation.separator.continuation.slim
+>  3]
+#^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>= link_to 'Home', \
+#^ text.slim meta.line.ruby.slim
+# ^^^^^^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+#                  ^ text.slim meta.line.ruby.slim source.ruby.embedded.slim punctuation.separator.continuation.slim
+>  root_path
+#^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>- items.each do |item|
+#^ text.slim meta.line.ruby.slim
+# ^^^^^^^^^^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>  p = item
+#^^ text.slim meta.tag
+#  ^ text.slim meta.tag entity.name.tag.slim
+#   ^ text.slim
+#    ^ text.slim meta.line.ruby.slim
+#     ^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>- if signed_in?
+#^ text.slim meta.line.ruby.slim
+# ^^^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>  p Yes
+#^^ text.slim meta.tag
+#  ^ text.slim meta.tag entity.name.tag.slim
+#   ^^^^^ text.slim
+>p single line
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^ text.slim
+>p next line unaffected
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>

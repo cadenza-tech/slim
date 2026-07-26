@@ -1,0 +1,45 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="512" cy="512" r="512" fill="#101010"/>
+  <g stroke="#101010" stroke-width="18">
+    <rect x="470" y="71" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 512 113)"/>
+    <rect x="597" y="124" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 639 166)"/>
+    <rect x="650" y="251" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 692 293)"/>
+    <rect x="597" y="378" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 639 420)"/>
+    <rect x="343" y="378" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 385 420)"/>
+    <rect x="290" y="251" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 332 293)"/>
+    <rect x="343" y="124" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 385 166)"/>
+    <rect x="488" y="269" width="48" height="48" rx="16" fill="#FA191D" transform="rotate(45 512 293)"/>
+    <rect x="450" y="307" width="48" height="48" rx="16" fill="#FA191D" transform="rotate(45 474 331)"/>
+    <rect x="412" y="345" width="48" height="48" rx="16" fill="#FA191D" transform="rotate(45 436 369)"/>
+    <rect x="196" y="388" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 238 430)"/>
+    <rect x="470" y="388" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 512 430)"/>
+    <rect x="744" y="388" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 786 430)"/>
+    <rect x="264" y="457" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 306 499)"/>
+    <rect x="401" y="457" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 443 499)"/>
+    <rect x="539" y="457" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 581 499)"/>
+    <rect x="676" y="457" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 718 499)"/>
+    <rect x="196" y="526" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 238 568)"/>
+    <rect x="333" y="526" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 375 568)"/>
+    <rect x="470" y="526" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 512 568)"/>
+    <rect x="607" y="526" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 649 568)"/>
+    <rect x="744" y="526" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 786 568)"/>
+    <rect x="264" y="595" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 306 637)"/>
+    <rect x="401" y="595" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 443 637)"/>
+    <rect x="539" y="595" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 581 637)"/>
+    <rect x="676" y="595" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 718 637)"/>
+    <rect x="196" y="664" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 238 706)"/>
+    <rect x="333" y="664" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 375 706)"/>
+    <rect x="470" y="664" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 512 706)"/>
+    <rect x="607" y="664" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 649 706)"/>
+    <rect x="744" y="664" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 786 706)"/>
+    <rect x="264" y="733" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 306 775)"/>
+    <rect x="401" y="733" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 443 775)"/>
+    <rect x="539" y="733" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 581 775)"/>
+    <rect x="676" y="733" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 718 775)"/>
+    <rect x="196" y="802" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 238 844)"/>
+    <rect x="333" y="802" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 375 844)"/>
+    <rect x="470" y="802" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 512 844)"/>
+    <rect x="607" y="802" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 649 844)"/>
+    <rect x="744" y="802" width="84" height="84" rx="16" fill="#EFEFEE" transform="rotate(45 786 844)"/>
+  </g>
+</svg>

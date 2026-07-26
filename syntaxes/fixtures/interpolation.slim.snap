@@ -1,0 +1,64 @@
+>p Text with #{user.name} inline
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^ text.slim
+#            ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#              ^^^^^^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
+#                       ^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.end.slim
+#                        ^^^^^^^^ text.slim
+>a href="#{path}" Link with interpolated attribute
+#^ text.slim meta.tag entity.name.tag.slim
+# ^ text.slim
+#  ^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#      ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#       ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.begin.html
+#        ^^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#          ^^^^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html meta.embedded.line.ruby.slim source.ruby
+#              ^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html meta.embedded.line.ruby.slim punctuation.section.embedded.end.slim
+#               ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.end.html
+#                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim meta.attribute-with-value.slim
+>css:
+#^^^ text.slim text.css.filter.slim constant.language.name.css.filter.slim
+#   ^ text.slim text.css.filter.slim
+>  .avatar { background: url(#{avatar_url}); }
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim text.css.filter.slim
+#                            ^^ text.slim text.css.filter.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#                              ^^^^^^^^^^ text.slim text.css.filter.slim meta.embedded.line.ruby.slim source.ruby
+#                                        ^ text.slim text.css.filter.slim meta.embedded.line.ruby.slim punctuation.section.embedded.end.slim
+#                                         ^^^^^ text.slim text.css.filter.slim
+>javascript:
+#^^^^^^^^^^ text.slim source.js.filter.slim constant.language.name.javascript.filter.slim
+#          ^ text.slim source.js.filter.slim
+>  const label = "#{h.fetch('k')}";
+#^^^^^^^^^^^^^^^^^ text.slim source.js.filter.slim
+#                 ^^ text.slim source.js.filter.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#                   ^^^^^^^^^^^^ text.slim source.js.filter.slim meta.embedded.line.ruby.slim source.ruby
+#                               ^ text.slim source.js.filter.slim meta.embedded.line.ruby.slim punctuation.section.embedded.end.slim
+#                                ^^^ text.slim source.js.filter.slim
+>  const nested = "#{ {a: 1}.to_json }";
+#^^^^^^^^^^^^^^^^^^ text.slim source.js.filter.slim
+#                  ^^ text.slim source.js.filter.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#                    ^ text.slim source.js.filter.slim meta.embedded.line.ruby.slim source.ruby
+#                     ^ text.slim source.js.filter.slim meta.embedded.line.ruby.slim source.ruby
+#                      ^^^^ text.slim source.js.filter.slim meta.embedded.line.ruby.slim source.ruby
+#                          ^ text.slim source.js.filter.slim meta.embedded.line.ruby.slim source.ruby
+#                           ^^^^^^^^^ text.slim source.js.filter.slim meta.embedded.line.ruby.slim source.ruby
+#                                    ^ text.slim source.js.filter.slim meta.embedded.line.ruby.slim punctuation.section.embedded.end.slim
+#                                     ^^^ text.slim source.js.filter.slim
+>  const after = "still javascript";
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim source.js.filter.slim
+>p Escaped \#{not_interpolated} stays text
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>ruby:
+#^^^^ text.slim text.ruby.filter.slim constant.language.name.ruby.filter.slim
+#    ^ text.slim text.ruby.filter.slim
+>  s = "#{inside_ruby_filter}"
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim text.ruby.filter.slim
+>| Verbatim #{interpolated} text
+#^^ text.slim
+#  ^^^^^^^^^ text.slim
+#           ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#             ^^^^^^^^^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
+#                         ^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.end.slim
+#                          ^^^^^^ text.slim
+>

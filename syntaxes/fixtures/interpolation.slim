@@ -1,0 +1,12 @@
+p Text with #{user.name} inline
+a href="#{path}" Link with interpolated attribute
+css:
+  .avatar { background: url(#{avatar_url}); }
+javascript:
+  const label = "#{h.fetch('k')}";
+  const nested = "#{ {a: 1}.to_json }";
+  const after = "still javascript";
+p Escaped \#{not_interpolated} stays text
+ruby:
+  s = "#{inside_ruby_filter}"
+| Verbatim #{interpolated} text

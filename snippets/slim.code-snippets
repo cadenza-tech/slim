@@ -1,0 +1,152 @@
+{
+  "if": {
+    "prefix": "if",
+    "body": ["- if ${1:condition}", "  $2"],
+    "description": "Slim control code: if"
+  },
+  "if/else": {
+    "prefix": "ifelse",
+    "body": ["- if ${1:condition}", "  $2", "- else", "  $3"],
+    "description": "Slim control code: if/else"
+  },
+  "elsif": {
+    "prefix": "elsif",
+    "body": ["- elsif ${1:condition}", "  $2"],
+    "description": "Slim control code: elsif"
+  },
+  "else": {
+    "prefix": "else",
+    "body": ["- else", "  $1"],
+    "description": "Slim control code: else"
+  },
+  "unless": {
+    "prefix": "unless",
+    "body": ["- unless ${1:condition}", "  $2"],
+    "description": "Slim control code: unless"
+  },
+  "each": {
+    "prefix": "each",
+    "body": ["- ${1:collection}.each do |${2:item}|", "  $3"],
+    "description": "Slim control code: each block"
+  },
+  "each_with_index": {
+    "prefix": "eachwi",
+    "body": ["- ${1:collection}.each_with_index do |${2:item}, ${3:index}|", "  $4"],
+    "description": "Slim control code: each_with_index block"
+  },
+  "case": {
+    "prefix": "case",
+    "body": ["- case ${1:subject}", "- when ${2:value}", "  $3", "- else", "  $4"],
+    "description": "Slim control code: case/when/else"
+  },
+  "when": {
+    "prefix": "when",
+    "body": ["- when ${1:value}", "  $2"],
+    "description": "Slim control code: when"
+  },
+  "while": {
+    "prefix": "while",
+    "body": ["- while ${1:condition}", "  $2"],
+    "description": "Slim control code: while"
+  },
+  "until": {
+    "prefix": "until",
+    "body": ["- until ${1:condition}", "  $2"],
+    "description": "Slim control code: until"
+  },
+  "begin/rescue": {
+    "prefix": "begin",
+    "body": ["- begin", "  $1", "- rescue ${2:StandardError} => ${3:e}", "  $4"],
+    "description": "Slim control code: begin/rescue"
+  },
+  "do block": {
+    "prefix": "do",
+    "body": ["- ${1:expression} do |${2:arg}|", "  $3"],
+    "description": "Slim control code: do block"
+  },
+  "yield": {
+    "prefix": "yield",
+    "body": ["= yield ${1::section}"],
+    "description": "Slim output code: yield"
+  },
+  "content_for": {
+    "prefix": "content_for",
+    "body": ["- content_for ${1::section} do", "  $2"],
+    "description": "Slim control code: content_for block"
+  },
+  "doctype": {
+    "prefix": "doctype",
+    "body": ["doctype ${1|html,5,1.1,strict,frameset,mobile,basic,transitional,xml|}"],
+    "description": "Slim doctype declaration"
+  },
+  "code comment": {
+    "prefix": "comment",
+    "body": ["/ $1"],
+    "description": "Slim code comment (not rendered)"
+  },
+  "html comment": {
+    "prefix": "htmlcomment",
+    "body": ["/! $1"],
+    "description": "Slim HTML comment (rendered)"
+  },
+  "conditional comment": {
+    "prefix": "ifcomment",
+    "body": ["/[if ${1:IE}]", "  $2"],
+    "description": "Slim conditional HTML comment"
+  },
+  "slim-lint disable": {
+    "prefix": "slimlintdisable",
+    "body": ["/ slim-lint:disable ${1:LinterName}", "$2", "/ slim-lint:enable ${1:LinterName}"],
+    "description": "Disable a slim-lint linter for a block"
+  },
+  "verbatim text": {
+    "prefix": "text",
+    "body": ["| $1"],
+    "description": "Slim verbatim text line"
+  },
+  "filter: ruby": {
+    "prefix": "ruby",
+    "body": ["ruby:", "  $1"],
+    "description": "Slim ruby: filter"
+  },
+  "filter: javascript": {
+    "prefix": "javascript",
+    "body": ["javascript:", "  $1"],
+    "description": "Slim javascript: filter"
+  },
+  "filter: css": {
+    "prefix": "css",
+    "body": ["css:", "  $1"],
+    "description": "Slim css: filter"
+  },
+  "filter: sass": {
+    "prefix": "sass",
+    "body": ["sass:", "  $1"],
+    "description": "Slim sass: filter"
+  },
+  "filter: scss": {
+    "prefix": "scss",
+    "body": ["scss:", "  $1"],
+    "description": "Slim scss: filter"
+  },
+  "filter: coffee": {
+    "prefix": "coffee",
+    "body": ["coffee:", "  $1"],
+    "description": "Slim coffee: filter"
+  },
+  "filter: less": {
+    "prefix": "less",
+    "body": ["less:", "  $1"],
+    "description": "Slim less: filter"
+  },
+  "filter: markdown": {
+    "prefix": "markdown",
+    "body": ["markdown:", "  $1"],
+    "description": "Slim markdown: filter"
+  },
+  "filter: erb": {
+    "prefix": "erb",
+    "body": ["erb:", "  $1"],
+    "description": "Slim erb: filter"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$comment": "Slim interpolates #{...} inside filters and verbatim text, but a filter hands its body straight to another grammar (source.js, source.css, ...). That grammar then reads the { of #{ as its own syntax: in JavaScript it opens an object literal, and a quote inside the Ruby - #{h.fetch('k')} - breaks the recovery, so every following line of the filter is mis-tokenized. Adding the interpolation rule to the filter's own patterns does not help, because TextMate takes the leftmost match on the line and the embedded grammar's rules start earlier; once its begin/end rules are entered, the filter's patterns no longer apply inside them. An injection is the mechanism that does apply at every level of the scope stack, and the L: prefix gives it priority over the host grammar's rules. -source.ruby keeps it out of code lines and #{} the main grammar already scoped; -text.ruby keeps it out of the ruby: filter, where #{ is not interpolation.",
+  "scopeName": "slim.interpolation.injection",
+  "injectionSelector": "L:text.slim -comment -source.ruby -text.ruby",
+  "patterns": [
+    {
+      "name": "meta.embedded.line.ruby.slim",
+      "begin": "(?<!\\\\)#\\{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.section.embedded.begin.slim" }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.embedded.end.slim" }
+      },
+      "contentName": "source.ruby",
+      "patterns": [{ "include": "#nested_braces" }, { "include": "source.ruby" }]
+    }
+  ],
+  "repository": {
+    "nested_braces": {
+      "$comment": "Keeps #{ {a: 1} } from ending at the inner closing brace.",
+      "begin": "\\{",
+      "end": "\\}",
+      "patterns": [{ "include": "#nested_braces" }, { "include": "source.ruby" }]
+    }
+  }
+}

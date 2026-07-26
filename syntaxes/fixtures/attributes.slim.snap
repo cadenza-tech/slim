@@ -1,0 +1,103 @@
+>a href="/" title='Home' Home
+#^ text.slim meta.tag entity.name.tag.slim
+# ^ text.slim
+#  ^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#      ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#       ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.begin.html
+#        ^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html
+#         ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.end.html
+#          ^ text.slim meta.attribute-with-value.slim
+#           ^^^^^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#                ^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#                 ^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim string.quoted.single.html punctuation.definition.string.begin.html
+#                  ^^^^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim string.quoted.single.html meta.toc-list.id.html
+#                      ^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim string.quoted.single.html punctuation.definition.string.end.html
+#                       ^^^^^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim
+>input type="text" disabled=true
+#^^^^^ text.slim meta.tag entity.name.tag.slim
+#     ^ text.slim
+#      ^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#          ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#           ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.begin.html
+#            ^^^^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html
+#                ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.end.html
+#                 ^ text.slim meta.attribute-with-value.slim
+#                  ^^^^^^^^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#                          ^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#                           ^^^^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim constant.language.slim
+>button disabled=false Cancel
+#^^^^^^ text.slim meta.tag entity.name.tag.slim
+#      ^ text.slim
+#       ^^^^^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#               ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#                ^^^^^ text.slim meta.attribute-with-value.slim constant.language.slim
+#                     ^^^^^^^ text.slim meta.attribute-with-value.slim
+>a(href="/wrapped" data-x="1") Wrapped parens
+#^ text.slim meta.tag entity.name.tag.slim
+# ^ text.slim
+#  ^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#      ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#       ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.begin.html
+#        ^^^^^^^^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html
+#                ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.end.html
+#                 ^ text.slim meta.attribute-with-value.slim
+#                  ^^^^^^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#                        ^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#                         ^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.begin.html
+#                          ^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html
+#                           ^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.end.html
+#                            ^ text.slim meta.attribute-with-value.slim meta.attribute-with-value.slim
+#                             ^^^^^^^^^^^^^^^ text.slim meta.attribute-with-value.slim
+>a[href="/brackets"] Wrapped brackets
+#^ text.slim meta.tag entity.name.tag.slim
+# ^ text.slim
+#  ^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#      ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#       ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.begin.html
+#        ^^^^^^^^^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html
+#                 ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.end.html
+#                  ^^^^^^^^^^^^^^^^^^ text.slim meta.attribute-with-value.slim
+>a{href="/braces"} Wrapped braces
+#^ text.slim meta.tag entity.name.tag.slim
+# ^ text.slim meta.tag
+#  ^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#      ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#       ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.begin.html
+#        ^^^^^^^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html
+#               ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.end.html
+#                ^ text.slim meta.attribute-with-value.slim
+#                 ^^^^^^^^^^^^^^^^ text.slim
+>a(href="/multi"
+#^ text.slim meta.tag entity.name.tag.slim
+# ^ text.slim
+#  ^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#      ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#       ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.begin.html
+#        ^^^^^^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html
+#              ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.end.html
+>  title="second line") Multiline wrap
+#^^ text.slim meta.tag
+#  ^^^^^ text.slim meta.tag entity.name.tag.slim
+#       ^ text.slim meta.line.ruby.slim
+#        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>div *{id: 'splat'} Splat hash
+#^^^ text.slim meta.tag entity.name.tag.slim
+#   ^ text.slim meta.tag
+#    ^^ text.slim meta.tag source.ruby.embedded.slim punctuation.section.embedded.ruby
+#      ^^^^^^^^^^^ text.slim meta.tag source.ruby.embedded.slim
+#                 ^ text.slim meta.tag source.ruby.embedded.slim punctuation.section.embedded.ruby
+#                  ^^^^^^^^^^^^ text.slim
+>section *splat_variable Splat variable
+#^^^^^^^ text.slim meta.tag entity.name.tag.slim
+#       ^^ text.slim meta.tag
+#         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>span data-count=items.count Counted
+#^^^^ text.slim meta.tag entity.name.tag.slim
+#    ^ text.slim
+#     ^^^^^^^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#               ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#                ^^^^^^^^^^^^^^^^^^^ text.slim meta.attribute-with-value.slim
+>p No attributes here
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^ text.slim
+>

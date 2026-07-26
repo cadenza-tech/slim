@@ -1,0 +1,195 @@
+>---
+#^^^ text.slim source.yaml.meta.slim storage.frontmatter.slim
+>title: Grammar sweep
+#^^^^^^^^^^^^^^^^^^^^^ text.slim source.yaml.meta.slim
+>---
+#^^^ text.slim source.yaml.meta.slim storage.frontmatter.slim
+>doctype html
+#^^^^^^^ text.slim meta.prolog.slim keyword.other.doctype.slim
+#       ^^^^^ text.slim meta.prolog.slim
+>html
+#^^^^ text.slim meta.tag entity.name.tag.slim
+>  head
+#^^ text.slim meta.tag
+#  ^^^^ text.slim meta.tag entity.name.tag.slim
+>    title Slim Syntax
+#^^^^ text.slim meta.tag
+#    ^^^^^ text.slim meta.tag entity.name.tag.slim
+#         ^^^^^^^^^^^^^ text.slim
+>    css:
+#^^^^ text.slim text.css.filter.slim
+#    ^^^ text.slim text.css.filter.slim constant.language.name.css.filter.slim
+#       ^ text.slim text.css.filter.slim
+>      .card { color: red; }
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim text.css.filter.slim
+>    scss:
+#^^^^ text.slim text.scss.filter.slim
+#    ^^^^ text.slim text.scss.filter.slim constant.language.name.scss.filter.slim
+#        ^ text.slim text.scss.filter.slim
+>      .card { .inner { color: blue; } }
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim text.scss.filter.slim
+>    sass:
+#^^^^ text.slim text.sass.filter.slim
+#    ^^^^ text.slim text.sass.filter.slim constant.language.name.sass.filter.slim
+#        ^ text.slim text.sass.filter.slim
+>      .card
+#^^^^^^^^^^^^ text.slim text.sass.filter.slim
+>        color: green
+#^^^^^^^^^^^^^^^^^^^^^ text.slim text.sass.filter.slim
+>    less:
+#^^^^ text.slim text.less.filter.slim
+#    ^^^^ text.slim text.less.filter.slim constant.language.name.less.filter.slim
+#        ^ text.slim text.less.filter.slim
+>      .card { color: teal; }
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim text.less.filter.slim
+>    javascript:
+#^^^^ text.slim source.js.filter.slim
+#    ^^^^^^^^^^ text.slim source.js.filter.slim constant.language.name.javascript.filter.slim
+#              ^ text.slim source.js.filter.slim
+>      const n = 1;
+#^^^^^^^^^^^^^^^^^^^ text.slim source.js.filter.slim
+>    coffee:
+#^^^^ text.slim text.coffeescript.filter.slim
+#    ^^^^^^ text.slim text.coffeescript.filter.slim constant.language.name.coffeescript.filter.slim
+#          ^ text.slim text.coffeescript.filter.slim
+>      n = 1
+#^^^^^^^^^^^^ text.slim text.coffeescript.filter.slim
+>  body
+#^^ text.slim meta.tag
+#  ^^^^ text.slim meta.tag entity.name.tag.slim
+>    / a code comment
+#^^^^ text.slim comment.block.slim
+#    ^ text.slim comment.block.slim comment.line.slash.slim
+#     ^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>      swallowed by the comment
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>    /! an html comment
+#^^^^ text.slim comment.block.html.slim
+#    ^^ text.slim comment.block.html.slim punctuation.definition.comment.slim
+#      ^^^^^^^^^^^^^^^^^ text.slim comment.block.html.slim
+>      also part of the html comment
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.html.slim
+>    /[if IE]
+#^^^^^^^^^^^^ text.slim comment.line.conditional.slim
+>      p Rendered inside a conditional comment
+#^^^^^^ text.slim meta.tag
+#      ^ text.slim meta.tag entity.name.tag.slim
+#       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>    #main.container
+#^^^^ text.slim meta.tag
+#    ^ text.slim meta.tag entity.name.tag.slim
+#     ^^^^ text.slim meta.tag entity.other.attribute-name.event.slim
+#         ^ text.slim meta.tag punctuation.separator.key-value.html
+#          ^^^^^^^^^ text.slim meta.tag entity.other.attribute-name.html
+>      .card#first data-role="card"
+#^^^^^^ text.slim meta.tag
+#      ^ text.slim meta.tag entity.name.tag.slim
+#       ^^^^ text.slim meta.tag entity.other.attribute-name.event.slim
+#           ^ text.slim meta.tag punctuation.separator.key-value.html
+#            ^^^^^ text.slim meta.tag entity.other.attribute-name.html
+#                 ^ text.slim
+#                  ^^^^^^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#                           ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#                            ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.begin.html
+#                             ^^^^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html
+#                                 ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.end.html
+>        p.lead Text after a tag
+#^^^^^^^^ text.slim meta.tag
+#        ^ text.slim meta.tag entity.name.tag.slim
+#         ^ text.slim meta.tag punctuation.separator.key-value.html
+#          ^^^^ text.slim meta.tag entity.other.attribute-name.html
+#              ^^^^^^^^^^^^^^^^^^ text.slim
+>        span = user.name
+#^^^^^^^^ text.slim meta.tag
+#        ^^^^ text.slim meta.tag entity.name.tag.slim
+#            ^ text.slim
+#             ^ text.slim meta.line.ruby.slim
+#              ^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>        == raw_helper
+#^^^^^^^^ text.slim
+#        ^^ text.slim meta.line.ruby.slim
+#          ^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>        =' spaced_helper
+#^^^^^^^^ text.slim
+#        ^^ text.slim meta.line.ruby.slim
+#          ^^^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>        - if signed_in?
+#^^^^^^^^ text.slim
+#        ^ text.slim meta.line.ruby.slim
+#         ^^^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>          p Signed in
+#^^^^^^^^^^ text.slim meta.tag
+#          ^ text.slim meta.tag entity.name.tag.slim
+#           ^^^^^^^^^^^ text.slim
+>        - elsif guest?
+#^^^^^^^^ text.slim
+#        ^ text.slim meta.line.ruby.slim
+#         ^^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>          p Guest
+#^^^^^^^^^^ text.slim meta.tag
+#          ^ text.slim meta.tag entity.name.tag.slim
+#           ^^^^^^^ text.slim
+>        - else
+#^^^^^^^^ text.slim
+#        ^ text.slim meta.line.ruby.slim
+#         ^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>          p Signed out
+#^^^^^^^^^^ text.slim meta.tag
+#          ^ text.slim meta.tag entity.name.tag.slim
+#           ^^^^^^^^^^^^ text.slim
+>        - items.each do |item|
+#^^^^^^^^ text.slim
+#        ^ text.slim meta.line.ruby.slim
+#         ^^^^^^^^^^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>          li = item
+#^^^^^^^^^^ text.slim meta.tag
+#          ^^ text.slim meta.tag entity.name.tag.slim
+#            ^ text.slim
+#             ^ text.slim meta.line.ruby.slim
+#              ^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>        li: a href="/" Home
+#^^^^^^^^ text.slim meta.tag
+#        ^^ text.slim meta.tag entity.name.tag.slim
+#          ^^ text.slim meta.tag punctuation.definition.tag.end.slim
+#            ^ text.slim meta.tag entity.name.tag.slim
+#             ^ text.slim
+#              ^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#                  ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#                   ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.begin.html
+#                    ^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html
+#                     ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.end.html
+#                      ^^^^^ text.slim meta.attribute-with-value.slim
+>    markdown:
+#^^^^ text.slim text.markdown.filter.slim
+#    ^^^^^^^^ text.slim text.markdown.filter.slim constant.language.name.markdown.filter.slim
+#            ^ text.slim text.markdown.filter.slim
+>      # Heading
+#^^^^^^^^^^^^^^^^ text.slim text.markdown.filter.slim
+>    erb:
+#^^^^ text.slim text.erb.filter.slim
+#    ^^^ text.slim text.erb.filter.slim constant.language.name.erb.filter.slim
+#       ^ text.slim text.erb.filter.slim
+>      <%= hello %>
+#^^^^^^^^^^^^^^^^^^^ text.slim text.erb.filter.slim
+>    ruby:
+#^^^^ text.slim text.ruby.filter.slim
+#    ^^^^ text.slim text.ruby.filter.slim constant.language.name.ruby.filter.slim
+#        ^ text.slim text.ruby.filter.slim
+>      answer = 42
+#^^^^^^^^^^^^^^^^^^ text.slim text.ruby.filter.slim
+>    | Verbatim text line
+#^^^^^^ text.slim
+#      ^^^^^^^^^^^^^^^^^^^ text.slim
+>      continued verbatim
+#^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>    ' Verbatim with trailing space
+#^^^^^^ text.slim
+#      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>    \= not an output line
+#^^^^ text.slim
+#    ^^ text.slim meta.escape.slim
+#      ^^^^^^^^^^^^^^^^^^^^ text.slim
+>    <div>Inline HTML</div>
+#^^^^ text.slim
+#    ^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>

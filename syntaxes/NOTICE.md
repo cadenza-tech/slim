@@ -1,0 +1,145 @@
+# Third-Party Notices
+
+## Slim TextMate grammar
+
+`syntaxes/slim.tmLanguage.json` is derived from **ruby-slim.tmbundle** by the Slim team.
+
+- Upstream: https://github.com/slim-template/ruby-slim.tmbundle
+- Vendored commit: `cad02689b6c6e03d67dab8eaadb22cf0fd3b436b` (master, 2025-07-27)
+- Upstream file: `Syntaxes/Ruby Slim.tmLanguage` (XML plist, converted with `plutil -convert json`)
+- License: MIT
+
+### Modifications
+
+- Every `include: source.ruby.rails` (five sites: the three delimited-ruby rules, `embedded-ruby`,
+  and `rubyline`) now includes `source.ruby`. VS Code registers no `source.ruby.rails` scope, and
+  vscode-textmate silently drops a whole pattern whose include target is unregistered, so those
+  regions would otherwise lose Ruby highlighting entirely.
+- The `scss:` and `less:` filters include `source.css.scss` and `source.css.less`, the scope names
+  VS Code's built-in grammars actually register, instead of upstream's `source.scss`/`source.less`.
+- The `erb:` filter includes `text.html.erb` instead of `source.erb`, which no published grammar
+  registers. `text.html.erb` itself ships with none of VS Code's built-ins either - an ERB
+  extension must be installed for the filter body to be highlighted (see README, Known Limitations).
+- A `doctype` rule was added (`meta.prolog.slim` / `keyword.other.doctype.slim`): upstream only
+  scopes the legacy `! ` prolog.
+- `/!` HTML comments and `/[if IE]` conditional comments were split out of the `/` code comment.
+  Upstream's single rule swallowed both, but a conditional comment's children are rendered content:
+  the new `/[...]` rule scopes only the header line, so children keep their normal scopes, while
+  `/!` keeps the block behaviour with `comment.block.html.slim`.
+- `rubyline`'s begin was `(==|=)(<>|><|<'|'<|<|>)?|-`, which misses the plain `'`
+  trailing-whitespace modifier (`='`, `=='`). It is now `(==|=)([<>']{1,2})?|-`.
+- The `(?==+|~)` root pattern dropped its `~` alternative; `~` has no meaning in Slim.
+
+### Known upstream quirks, pinned by the snapshots
+
+The snapshots under `syntaxes/fixtures/` assert the grammar as it is, including behaviour inherited
+from upstream that a rewrite might improve but vendoring deliberately keeps:
+
+- In `.card#first`, the leading `.card` is tokenized as tag punctuation plus
+  `entity.other.attribute-name.event.slim` rather than as a class literal.
+- A wrapped attribute list continued across lines (`a(href="..."` + newline + `title="...")`) is
+  re-parsed from scratch on the continuation line: the second line's attribute is read as a tag
+  head, because a begin/end pair cannot carry the wrapper state across lines in this grammar.
+- A splat written as `*variable` (rather than `*{...}`) is not scoped; upstream's splat rule only
+  matches the brace form.
+
+## Interpolation injection
+
+`syntaxes/slim-interpolation.injection.json` is original work, not vendored, but it exists to
+correct the vendored grammar's behaviour inside filters: a filter hands its body to another grammar,
+which then reads the `{` of `#{` as its own syntax. In JavaScript that opens an object literal, and
+a quote inside the Ruby breaks the recovery, so every following line of the filter is mis-tokenized.
+Adding the interpolation rule to the filter's own patterns does not work, because TextMate takes the
+leftmost match on a line and the embedded grammar's rules start earlier; once its begin/end rules
+are entered, the filter's patterns no longer apply inside them. An injection applies at every level
+of the scope stack, which is why it is the right mechanism. Its selector excludes `text.ruby` (the
+`ruby:` filter) and `source.ruby`, where `#{` is not interpolation, and its begin carries a
+`(?<!\\)` lookbehind so the `\#{}` escape stays plain text.
+
+### Upstream license (ruby-slim.tmbundle)
+
+```
+The MIT License
+
+Copyright (c) 2014 Slim Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+## Rails snippets
+
+`src/pure/railsSnippetsUpstream.ts` is derived from **haml-vscode** by Karuna Murti, and the seven
+structural snippet bodies retained in `snippets/slim.code-snippets` (`if`, `else`, `elsif`,
+`unless`, `each`, `yield`, `content_for`) originate there as well. `railsSnippetsUpstream.ts` is
+not shipped as a file: esbuild bundles it into `dist/extension.js`, which is where the derived work
+lives in the published extension.
+
+- Upstream: https://github.com/karuna/haml-vscode
+- Vendored commit: `504875f60bcd474f17762b2daf97680476135f79` (master, 2022-07-03)
+- Upstream file: `snippets/snippets.json`
+- License: MIT
+
+### Modifications
+
+- The upstream file contains 228 snippets, most of which are Rails view helpers (`link_to`,
+  `url_for`, `audio_tag`, ...). `src/pure/railsSnippetsUpstream.ts` holds 221 of them. Prefixes and
+  bodies are verbatim - `= helper` and `- ... do` lines are valid Slim as they are - apart from the
+  container, which changed from a JSON object keyed by name to a TypeScript array, and three
+  repaired bodies: `fields_for` had `${:record_object}` with no tab stop number and
+  `render_partial_collection` had `${7, layout: $8}` with a comma where a colon belongs, both of
+  which VS Code's snippet parser rejects outright, so that upstream inserts their literal text; and
+  `video_tag` had `autobuf.fer:`, a stray dot in the `autobuffer:` keyword that makes the inserted
+  Ruby a syntax error. The seven structural snippets above are
+  excluded so the two sets never offer the same prefix twice. They are offered through a
+  CompletionItemProvider rather than `contributes.snippets`, because that contribution point takes
+  only `language` and `path` and so cannot be turned off by a setting; `slim.snippets.rails`
+  controls them, and defaults to detecting whether the workspace is a Rails project.
+- The 18 further helpers in `src/pure/railsSnippets.ts` (`form_with`, `turbo_frame_tag`, `dom_id`,
+  ...) and `language-configuration.json` are original to this repository and are not covered by
+  this notice.
+
+### Upstream license (haml-vscode)
+
+```
+The MIT License (MIT)
+=====================
+
+Copyright © `2016` `Karuna Murti <karuna.murti at gmail dot com>`
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+```

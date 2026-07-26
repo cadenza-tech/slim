@@ -1,0 +1,73 @@
+name: Test
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # slim-lint has no capability gates the extension branches on, so both legs run the same
+          # assertions; two versions exist purely to catch CLI-flag or JSON-shape drift between the
+          # oldest leg supported and the current release. 0.31.1 is the oldest release carrying the
+          # Ruby 3.3.5+ compatibility fix; bump it if it stops installing on the CI Ruby.
+          - slim_lint: '0.31.1'
+          - slim_lint: '0.35.0'
+    name: test (slim_lint ${{ matrix.slim_lint }})
+    env:
+      SLIM_LINT_VERSION: ${{ matrix.slim_lint }}
+      BUNDLE_GEMFILE: ${{ github.workspace }}/src/test/fixtures/gem/Gemfile
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: yarn
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+      # Plain `bundle install` into the default gem home, not `bundler-cache: true`: vendor/bundle keeps
+      # the executable off PATH, and its local .bundle/config does not travel with the Gemfile that
+      # bundlerRoundTrip.test.ts copies into a temp tree.
+      - name: Install the fixture bundle
+        run: bundle install --jobs 4
+      # Both gem-dependent suites self-skip when their probe fails, so without these the job stays green
+      # having tested nothing. One per invocation branch.
+      - name: Verify slim-lint is on PATH
+        run: slim-lint --version
+      - name: Verify slim-lint runs through Bundler
+        run: bundle exec slim-lint --version
+      - name: Install dependencies
+        run: yarn install --immutable
+      - name: Cache VS Code download
+        uses: actions/cache@v6
+        with:
+          path: .vscode-test
+          key: vscode-test-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: vscode-test-${{ runner.os }}-
+      # Yarn Berry does not run pre* scripts - verified by deleting dist/ and out/ and running
+      # `yarn test`, which rebuilt neither. Without an explicit build, @vscode/test-cli runs the
+      # extension host against a stale dist/ and finds zero tests in an absent out/, and reports
+      # success either way. The `test` script builds for the same reason; these steps keep the
+      # failure surface separated in CI. `yarn build` rather than `yarn compile`: check-types and
+      # check are the whole content of the Lint workflow, which runs in parallel, and a type error
+      # still fails compile-tests here.
+      - name: Build
+        run: yarn build
+      - name: Compile tests
+        run: yarn compile-tests
+      - name: Run unit tests with coverage
+        run: yarn test:coverage
+      - name: Run integration tests
+        run: xvfb-run -a yarn test:integration

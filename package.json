@@ -1,0 +1,322 @@
+{
+  "name": "slim",
+  "displayName": "Slim",
+  "description": "Slim language support with syntax highlighting, snippets, and linting powered by slim-lint",
+  "version": "0.0.0",
+  "publisher": "cadenza-tech",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cadenza-tech/slim"
+  },
+  "engines": {
+    "vscode": "^1.57.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Snippets"
+  ],
+  "keywords": [
+    "slim",
+    "slim-lint",
+    "ruby",
+    "rails",
+    "linter",
+    "syntax",
+    "highlighting"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Syntax highlighting, snippets, indentation, data attribute completion, and partial navigation and completion work in untrusted workspaces: they read file names at most and never start a process. slim-lint diagnostics are disabled because they execute the slim-lint executable, and through it Ruby code from the workspace: bundle exec evaluates the Gemfile, and .rubocop.yml can require arbitrary .rb files.",
+      "restrictedConfigurations": [
+        "slim.slimLint.executablePath",
+        "slim.slimLint.useBundler",
+        "slim.slimLint.configPath"
+      ]
+    },
+    "virtualWorkspaces": {
+      "supported": "limited",
+      "description": "slim-lint requires a local filesystem and a Ruby process, so only syntax highlighting, the built-in Slim snippets and data attribute completion are available in virtual workspaces. Rails snippets need slim.snippets.rails set to \"on\", because their automatic detection reads the workspace from disk. Partial navigation and completion resolve real filesystem paths, so they are unavailable as well."
+    }
+  },
+  "activationEvents": [
+    "onLanguage:slim",
+    "onCommand:slim.lintFile",
+    "onCommand:slim.restartLinter",
+    "onCommand:slim.showOutput",
+    "onCommand:slim.wrapInConditional",
+    "onCommand:slim.wrapInBlock",
+    "onCommand:slim.splitToPartial"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "slim",
+        "aliases": [
+          "Slim",
+          "slim",
+          "SLIM"
+        ],
+        "extensions": [
+          ".slim"
+        ],
+        "mimetypes": [
+          "text/x-slim"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "slim",
+        "scopeName": "text.slim",
+        "path": "./syntaxes/slim.tmLanguage.json",
+        "embeddedLanguages": {
+          "text.ruby.filter.slim": "ruby",
+          "source.ruby.embedded.slim": "ruby",
+          "source.ruby.embedded.html": "ruby",
+          "source.js.filter.slim": "javascript",
+          "text.coffeescript.filter.slim": "coffeescript",
+          "text.markdown.filter.slim": "markdown",
+          "text.css.filter.slim": "css",
+          "text.sass.filter.slim": "sass",
+          "text.scss.filter.slim": "scss",
+          "text.less.filter.slim": "less",
+          "text.erb.filter.slim": "erb",
+          "source.yaml.meta.slim": "yaml"
+        }
+      },
+      {
+        "path": "./syntaxes/slim-interpolation.injection.json",
+        "scopeName": "slim.interpolation.injection",
+        "injectTo": [
+          "text.slim"
+        ]
+      }
+    ],
+    "snippets": [
+      {
+        "language": "slim",
+        "path": "./snippets/slim.code-snippets"
+      }
+    ],
+    "configurationDefaults": {
+      "[slim]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true
+      }
+    },
+    "commands": [
+      {
+        "command": "slim.lintFile",
+        "title": "Lint File",
+        "category": "Slim",
+        "enablement": "editorLangId == slim"
+      },
+      {
+        "command": "slim.wrapInConditional",
+        "title": "Wrap in Conditional",
+        "category": "Slim",
+        "enablement": "editorLangId == slim"
+      },
+      {
+        "command": "slim.wrapInBlock",
+        "title": "Wrap in Block",
+        "category": "Slim",
+        "enablement": "editorLangId == slim"
+      },
+      {
+        "command": "slim.splitToPartial",
+        "title": "Split to Partial",
+        "category": "Slim",
+        "enablement": "editorLangId == slim"
+      },
+      {
+        "command": "slim.restartLinter",
+        "title": "Restart Linter",
+        "category": "Slim"
+      },
+      {
+        "command": "slim.showOutput",
+        "title": "Show Output Channel",
+        "category": "Slim"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "slim.lintFile",
+          "when": "editorLangId == slim"
+        },
+        {
+          "command": "slim.wrapInConditional",
+          "when": "editorLangId == slim"
+        },
+        {
+          "command": "slim.wrapInBlock",
+          "when": "editorLangId == slim"
+        },
+        {
+          "command": "slim.splitToPartial",
+          "when": "editorLangId == slim"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Slim",
+      "properties": {
+        "slim.lint.run": {
+          "type": "string",
+          "enum": [
+            "onSave",
+            "onType",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Lint when a file is opened and when it is saved.",
+            "Lint as you type, debounced by slim.lint.debounceMs.",
+            "Never run slim-lint diagnostics."
+          ],
+          "default": "onSave",
+          "scope": "resource",
+          "description": "When to run slim-lint diagnostics."
+        },
+        "slim.lint.debounceMs": {
+          "type": "number",
+          "default": 500,
+          "minimum": 0,
+          "maximum": 10000,
+          "scope": "resource",
+          "description": "Debounce time in milliseconds before linting while typing. Only used when slim.lint.run is onType."
+        },
+        "slim.lint.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "scope": "resource",
+          "markdownDescription": "Glob patterns of files to skip. slim-lint's own top-level `exclude:` is not applied when linting from stdin, so use this instead."
+        },
+        "slim.slimLint.executablePath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "scope": "machine",
+          "description": "Absolute path to the slim-lint executable. When set, bundler detection is skipped."
+        },
+        "slim.slimLint.useBundler": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "always",
+            "never"
+          ],
+          "enumDescriptions": [
+            "Use bundle exec when a Gemfile.lock listing slim_lint is found.",
+            "Always use bundle exec.",
+            "Never use bundle exec; run slim-lint from PATH."
+          ],
+          "default": "auto",
+          "scope": "machine",
+          "description": "Whether to run slim-lint through bundle exec."
+        },
+        "slim.slimLint.configPath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "scope": "machine",
+          "description": "Path to a slim-lint configuration file passed as -c. Relative paths are resolved against the workspace folder."
+        },
+        "slim.slimLint.timeoutMs": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 1000,
+          "maximum": 120000,
+          "scope": "resource",
+          "description": "How long to wait for a slim-lint process before terminating it."
+        },
+        "slim.snippets.rails": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "on",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Offer Rails view helper snippets only for files on disk that belong to a Rails project.",
+            "Always offer Rails view helper snippets.",
+            "Never offer Rails view helper snippets."
+          ],
+          "default": "auto",
+          "scope": "resource",
+          "markdownDescription": "Whether to offer Rails view helper snippets (`link_to`, `form_with`, `f.text_field`, ...) alongside the built-in Slim snippets. `auto` looks for `config/application.rb` or a `Gemfile.lock` listing `rails`, and is always off outside the local filesystem."
+        },
+        "slim.completions.partials": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "markdownDescription": "Whether to complete partial names inside a `render` call. Candidates come from the `app/views` directory containing the file, or from the file's own directory when there is none."
+        },
+        "slim.completions.dataAttributes": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "markdownDescription": "Whether to complete the `data-*` attributes Turbo, Stimulus and Rails UJS define, in an attribute list. Works for attributes written bare after the tag - `div data-turbo-frame=\"x\"` - and inside `()`, `[]` or `{}` wrappers."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "upgrade": "yarn up \"*\" \"@*/*\"",
+    "vscode:prepublish": "yarn run package",
+    "compile": "yarn run check-types && yarn run check && yarn run build",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "yarn run check-types && yarn run check && node esbuild.js --production",
+    "compile-tests": "tsc -p .",
+    "watch-tests": "tsc -p . -w",
+    "check-types": "tsc --noEmit",
+    "lint": "biome lint",
+    "lint:fix": "biome lint --write",
+    "format": "biome format",
+    "format:fix": "biome format --write",
+    "check": "biome check",
+    "check:fix": "biome check --write",
+    "test": "yarn run compile-tests && yarn run compile && yarn run test:unit && yarn run test:integration",
+    "test:coverage": "yarn run compile-tests && c8 mocha",
+    "test:grammar": "vscode-tmgrammar-snap --config syntaxes/fixtures/grammar-test.config.json -s text.slim \"syntaxes/fixtures/*.slim\"",
+    "test:grammar:update": "vscode-tmgrammar-snap --config syntaxes/fixtures/grammar-test.config.json -s text.slim \"syntaxes/fixtures/*.slim\" -u",
+    "build": "node esbuild.js",
+    "test:unit": "mocha",
+    "test:integration": "vscode-test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.4",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "~24.13.3",
+    "@types/vscode": "~1.57.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0",
+    "c8": "^12.0.0",
+    "esbuild": "^0.28.1",
+    "mocha": "^11.7.6",
+    "npm-run-all": "^4.1.5",
+    "ovsx": "^1.0.2",
+    "typescript": "^7.0.2",
+    "vscode-tmgrammar-test": "^0.1.3"
+  },
+  "packageManager": "yarn@4.17.1"
+}
