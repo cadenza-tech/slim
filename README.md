@@ -179,7 +179,7 @@ Rails snippets never spawn anything either, but `auto` does read `Gemfile.lock` 
 | `slim.lint.run` | `onSave` | When to run diagnostics: `onSave` (also on open), `onType`, or `off`. |
 | `slim.lint.debounceMs` | `500` | Debounce in milliseconds while typing. Only used when `slim.lint.run` is `onType`. |
 | `slim.lint.exclude` | `[]` | Glob patterns of files to skip. See [Known Limitations](#known-limitations). |
-| `slim.slimLint.executablePath` | `null` | Path to the slim-lint executable. Skips bundler detection when set. |
+| `slim.slimLint.executablePath` | `null` | Absolute path to the slim-lint executable, or a bare command name resolved on `PATH`; relative paths are refused. Skips bundler detection when set. |
 | `slim.slimLint.useBundler` | `auto` | Whether to run through `bundle exec`: `auto`, `always`, or `never`. |
 | `slim.slimLint.configPath` | `null` | Configuration file passed as `-c`. |
 | `slim.slimLint.timeoutMs` | `15000` | How long to wait for a slim-lint process before terminating it. See [Known Limitations](#known-limitations). |
