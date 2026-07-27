@@ -19,14 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-
----
-
-This extension bundles third-party components. The TextMate grammar
-(syntaxes/slim.tmLanguage.json) is derived from ruby-slim.tmbundle by the Slim
-team, Copyright (c) 2014, MIT licensed. The bundled Rails snippet set
-(src/pure/railsSnippetsUpstream.ts, compiled into dist/extension.js) and the
-structural snippet bodies retained in snippets/slim.code-snippets are derived
-from haml-vscode by Karuna Murti, Copyright (c) 2016, MIT licensed. See
-syntaxes/NOTICE.md for the vendored commits, the lists of modifications, and
-the full upstream license texts.
