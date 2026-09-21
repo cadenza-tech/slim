@@ -100,12 +100,18 @@ published extension.
 - The upstream file contains 228 snippets, most of which are Rails view helpers (`link_to`,
   `url_for`, `audio_tag`, ...). `src/pure/railsSnippetsUpstream.ts` holds 221 of them. Prefixes and
   bodies are verbatim - `= helper` and `- ... do` lines are valid Slim as they are - apart from the
-  container, which changed from a JSON object keyed by name to a TypeScript array, and three
-  repaired bodies: `fields_for` had `${:record_object}` with no tab stop number and
+  container, which changed from a JSON object keyed by name to a TypeScript array, and seven
+  repaired bodies. `fields_for` had `${:record_object}` with no tab stop number and
   `render_partial_collection` had `${7, layout: $8}` with a comma where a colon belongs, both of
-  which VS Code's snippet parser rejects outright, so that upstream inserts their literal text; and
-  `video_tag` had `autobuf.fer:`, a stray dot in the `autobuffer:` keyword that makes the inserted
-  Ruby a syntax error. The seven structural snippets above are
+  which VS Code's snippet parser rejects outright, so that upstream inserts their literal text.
+  The other five inserted Ruby that is a syntax error as it stands: `video_tag` had
+  `autobuf.fer:`, a stray dot in the `autobuffer:` keyword; `stylesheet_link_tag` had no comma
+  between the source and `media:`; `button_block` and `f.button_block` opened their argument list
+  with the comma of the optional hash, which is now parenthesized as in `time_tag_block`; and
+  `select` had a comma before that placeholder as well as inside it. Three `detail` strings that
+  named another helper were corrected: `mail_to_block`, `collection_radio_buttons` and
+  `collection_radio_buttons_block`. The header of the file lists each change exactly, so that they
+  can be reapplied after regenerating it. The seven structural snippets above are
   excluded so the two sets never offer the same prefix twice. The Rails set is offered through a
   CompletionItemProvider rather than `contributes.snippets`, because that contribution point takes
   only `language` and `path` and so cannot be turned off by a setting; `slim.snippets.rails`
