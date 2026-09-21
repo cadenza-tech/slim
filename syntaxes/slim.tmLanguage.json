@@ -330,6 +330,9 @@
       "patterns": [
         {
           "include": "source.sass"
+        },
+        {
+          "match": "(?!)"
         }
       ],
       "name": "text.sass.filter.slim",
@@ -371,10 +374,36 @@
     },
     {
       "begin": "^(\\s*)(erb):$",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "patterns": [
         {
-          "include": "text.html.erb"
+          "begin": "<%#",
+          "end": "%>",
+          "name": "comment.block.erb.slim"
+        },
+        {
+          "begin": "<%(?!%)[-=]?",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.begin.erb.slim"
+            }
+          },
+          "end": "-?%>",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.end.erb.slim"
+            }
+          },
+          "contentName": "source.ruby.embedded.erb.slim",
+          "patterns": [
+            {
+              "match": "#.*?(?=-?%>)",
+              "name": "comment.line.number-sign.ruby"
+            },
+            {
+              "include": "source.ruby"
+            }
+          ]
         }
       ],
       "name": "text.erb.filter.slim",

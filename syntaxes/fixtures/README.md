@@ -18,6 +18,11 @@ region is unscoped. That looks exactly like a broken grammar, but it is an artif
 region boundaries — which this extension owns — under test, without vendoring third-party
 Ruby/CSS/JavaScript grammars.
 
+**Only a scope that stock VS Code registers may be stubbed.** A stub for anything else keeps a rule
+alive here that every real editor drops: `source.sass` and `text.html.erb` were stubbed once, so the
+`sass:` and `erb:` regions stayed green while an editor without those extensions read `sass` and
+`erb` as tag names. `src/test/pure/manifest.test.ts` holds the list, and fails on a stub outside it.
+
 The stubs contribute no patterns, so the snapshots assert where each filter region starts and ends,
 not how its contents are tokenized. Highlighting *inside* a filter comes from the real embedded
 grammar at runtime and has to be checked by hand in the Extension Development Host

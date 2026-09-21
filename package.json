@@ -90,6 +90,7 @@
           "text.scss.filter.slim": "scss",
           "text.less.filter.slim": "less",
           "text.erb.filter.slim": "erb",
+          "source.ruby.embedded.erb.slim": "ruby",
           "source.yaml.meta.slim": "yaml"
         }
       },

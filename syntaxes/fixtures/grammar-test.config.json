@@ -32,20 +32,12 @@
         "path": "./stubs/source-ruby.tmLanguage.json"
       },
       {
-        "scopeName": "source.sass",
-        "path": "./stubs/source-sass.tmLanguage.json"
-      },
-      {
         "scopeName": "source.yaml",
         "path": "./stubs/source-yaml.tmLanguage.json"
       },
       {
         "scopeName": "text.html.basic",
         "path": "./stubs/text-html-basic.tmLanguage.json"
-      },
-      {
-        "scopeName": "text.html.erb",
-        "path": "./stubs/text-html-erb.tmLanguage.json"
       },
       {
         "scopeName": "text.html.markdown",

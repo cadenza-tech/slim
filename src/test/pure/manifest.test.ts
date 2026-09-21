@@ -153,6 +153,53 @@ suite('package.json manifest Test Suite', () => {
         assert.ok(registered.has(grammar.scopeName), `${grammar.scopeName} is contributed but has no entry in grammar-test.config.json`);
       }
     });
+
+    /**
+     * The scopes the extensions built into VS Code register, of those this grammar includes. Each one
+     * is a claim that was checked against the `contributes.grammars` of those extensions; source.sass
+     * and text.html.erb are absent because only third-party extensions have them.
+     */
+    const STOCK_SCOPES = [
+      'source.coffee',
+      'source.css',
+      'source.css.less',
+      'source.css.scss',
+      'source.js',
+      'source.ruby',
+      'source.yaml',
+      'text.html.basic',
+      'text.html.markdown'
+    ];
+
+    // The other direction of the same trap. A stub for a scope stock VS Code does not register keeps
+    // a rule alive in the snapshots that every real editor drops - which is how the `sass:` and `erb:`
+    // regions stayed green while an editor without those extensions read their headers as tag names.
+    test('should stub only the scopes stock VS Code registers', () => {
+      const harness = readJson('syntaxes', 'fixtures', 'grammar-test.config.json') as {
+        contributes: { grammars: { scopeName: string }[] };
+      };
+      const contributed = new Set(manifest.contributes.grammars.map((grammar: { scopeName: string }) => grammar.scopeName));
+      const stubbed = harness.contributes.grammars.map((grammar) => grammar.scopeName).filter((scope) => !contributed.has(scope));
+      assert.deepStrictEqual(stubbed.sort(), STOCK_SCOPES);
+    });
+
+    // vscode-textmate drops a begin/end rule whose every pattern includes a grammar that is not
+    // registered, and with it the region: the body is then read as Slim, and an `erb:` body's `%>`
+    // opens a Ruby %-literal that runs to the end of the file. A rule survives on one pattern that
+    // needs nothing from outside.
+    test('should keep every filter rule alive without third-party grammars', () => {
+      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as { patterns: { begin?: string; patterns?: { include?: string }[] }[] };
+      const stock = new Set(STOCK_SCOPES);
+      for (const rule of grammar.patterns) {
+        if (rule.begin === undefined || rule.patterns === undefined) {
+          continue;
+        }
+        const survives = rule.patterns.some(
+          (pattern) => pattern.include === undefined || pattern.include.startsWith('#') || stock.has(pattern.include)
+        );
+        assert.ok(survives, `the rule beginning ${rule.begin} has only third-party includes and vanishes in stock VS Code`);
+      }
+    });
   });
 
   // Replaces the inline node -e in .github/workflows/lint.yml, which hardcoded the version string.

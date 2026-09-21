@@ -17,9 +17,28 @@
   regions would otherwise lose Ruby highlighting entirely.
 - The `scss:` and `less:` filters include `source.css.scss` and `source.css.less`, the scope names
   VS Code's built-in grammars actually register, instead of upstream's `source.scss`/`source.less`.
-- The `erb:` filter includes `text.html.erb` instead of `source.erb`, which no published grammar
-  registers. `text.html.erb` itself ships with none of VS Code's built-ins either - an ERB
-  extension must be installed for the filter body to be highlighted (see README, Known Limitations).
+- The `erb:` filter includes no external grammar. Upstream's `source.erb` is registered by no
+  published grammar and `text.html.erb` by none of VS Code's built-ins, and vscode-textmate drops a
+  rule whose every include is missing: the header was then read as a tag named `erb`, and the body
+  as Slim - where the `=` of `<%= x %>` opens a Ruby line and Ruby reads the closing `%>` as the
+  start of a `%`-literal that ran to the end of the file. With an ERB extension installed the rule
+  survived, but an HTML tag or comment left open in the body ran past the end of the filter in the
+  same way. The rule now hands only the inside of a `<% %>` tag to `source.ruby`, the shape the ERB
+  grammar shipped with vscode-ruby and Ruby LSP has, with `# ...` matched as a comment first so
+  that it cannot swallow the `%>` that closes the tag. It is also the one filter written as
+  `begin`/`while` instead of `begin`/`end`: a filter's `end` is only tried while the filter is on
+  top of the rule stack, so a tag still missing its `%>` would otherwise take the rest of the file
+  for Ruby. What it shares with the other filters is how the body is told from what follows - by the
+  header's own leading whitespace plus one more character - so a body indented with tabs under a
+  header indented with spaces is not recognised as one.
+- The `sass:` filter carries a second pattern that can never match, `(?!)`, next to its
+  `source.sass` include. `source.sass` comes from third-party extensions only, and without the
+  extra pattern the rule is dropped in stock VS Code the same way: `sass` became a tag name and the
+  body's selectors and properties Slim tags. With it the region is scoped either way, and
+  highlighted inside when a Sass extension is installed.
+- `syntaxes/fixtures/grammar-test.config.json` stubs only the scopes stock VS Code registers.
+  Stubs for `source.sass` and `text.html.erb` were what kept the two rules above alive in the
+  snapshots while every real editor dropped them; `src/test/pure/manifest.test.ts` pins both halves.
 - A `doctype` rule was added (`meta.prolog.slim` / `keyword.other.doctype.slim`): upstream only
   scopes the legacy `! ` prolog.
 - `/!` HTML comments and `/[if IE]` conditional comments were split out of the `/` code comment.
