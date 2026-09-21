@@ -19,6 +19,9 @@ import { findLiteralEnd, isNameCharacter, isSpaceCharacter, skipSpaces } from '.
 /** Line leads that can never be a tag: code, verbatim text, comment, escape, inline HTML. */
 const REJECT_STARTS = new Set(['-', '=', '|', "'", '/', '\\', '<']);
 
+/** Reads like a tag and is not one: Slim matches it before any tag, and a doctype name follows. */
+const DOCTYPE = 'doctype';
+
 export interface AttributePosition {
   readonly syntax: AttributeSyntax;
   /**
@@ -37,6 +40,9 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
   let index = skipSpaces(linePrefix, 0);
   const lead = linePrefix[index];
   if (lead === undefined || REJECT_STARTS.has(lead)) {
+    return null;
+  }
+  if (linePrefix.startsWith(DOCTYPE, index) && !isNameCharacter(linePrefix[index + DOCTYPE.length])) {
     return null;
   }
 

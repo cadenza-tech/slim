@@ -102,6 +102,13 @@ suite('pure/attributePosition Test Suite', () => {
       assert.strictEqual(syntaxAt('a(data-turbo-frame='), null);
     });
 
+    // `doctype` reads like a tag and is not one: what follows it is a doctype name.
+    test('should reject everything after doctype', () => {
+      assert.strictEqual(syntaxAt('doctype '), null);
+      assert.strictEqual(syntaxAt('doctype ht'), null);
+      assert.strictEqual(syntaxAt('doctype-switch da'), 'htmlAttributes');
+    });
+
     // The fence: a completed bare token with no '=' is inline text, and so is everything after it.
     test('should reject bare names after inline text has begun', () => {
       assert.strictEqual(syntaxAt('p Hello da'), null);
