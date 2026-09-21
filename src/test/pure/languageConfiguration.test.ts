@@ -47,6 +47,15 @@ suite('language configuration Test Suite', () => {
     }
   });
 
+  // Slim writes the whitespace modifiers before the attributes: `a<(href="/")` is a tag, while in
+  // `a(href="/")<` the `<` is already inline text.
+  test('should read a whitespace modifier where Slim does, between the tag and its attributes', () => {
+    assert.strictEqual(indentsAfter('a>'), true);
+    assert.strictEqual(indentsAfter('a<>(href="/")'), true);
+    assert.strictEqual(indentsAfter('a> href="/"'), true);
+    assert.strictEqual(indentsAfter('a(href="/")<'), false);
+  });
+
   // `(\(.*\)|\[.*\]|\{.*\})*` - a `.*` inside a starred group - tried every way of splitting a run
   // of adjacent groups before giving up: 28 of them took nine seconds, doubling with every two more,
   // with the whole window frozen for the duration.
