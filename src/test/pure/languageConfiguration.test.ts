@@ -56,6 +56,27 @@ suite('language configuration Test Suite', () => {
     assert.strictEqual(indentsAfter('a(href="/")<'), false);
   });
 
+  // An element that can have no children opens no block: nesting the next line under `meta` is never
+  // what a `head` full of them wants.
+  test('should not indent after a void element', () => {
+    for (const line of [
+      'br',
+      'hr',
+      'meta charset="utf-8"',
+      'link rel="stylesheet" href="app.css"',
+      'img src="a.png" alt=""',
+      'input.form-control type="text"'
+    ]) {
+      assert.strictEqual(indentsAfter(line), false, line);
+    }
+  });
+
+  test('should still indent after a tag that merely begins like a void element', () => {
+    for (const line of ['brand', 'input-group', 'link-list class="x"', '.input', '#img']) {
+      assert.strictEqual(indentsAfter(line), true, line);
+    }
+  });
+
   // `(\(.*\)|\[.*\]|\{.*\})*` - a `.*` inside a starred group - tried every way of splitting a run
   // of adjacent groups before giving up: 28 of them took nine seconds, doubling with every two more,
   // with the whole window frozen for the duration.

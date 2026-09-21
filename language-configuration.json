@@ -22,11 +22,11 @@
       "action": { "indent": "indent" }
     },
     {
-      "beforeText": "^\\s*([\\w-]+|[.#][\\w-]+)([.#][\\w-]+)*[<>']*(\\(.*\\)|\\[.*\\]|\\{.*\\})?\\s*$",
+      "beforeText": "^\\s*(?!(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)(?![\\w:-]))([\\w-]+|[.#][\\w-]+)([.#][\\w-]+)*[<>']*(\\(.*\\)|\\[.*\\]|\\{.*\\})?\\s*$",
       "action": { "indent": "indent" }
     },
     {
-      "beforeText": "^\\s*([\\w-]+|[.#][\\w-]+)([.#][\\w-]+)*[<>']*(\\s+[\\w-]+=(\"[^\"]*\"|'[^']*'|[^\\s\"']+))+\\s*$",
+      "beforeText": "^\\s*(?!(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)(?![\\w:-]))([\\w-]+|[.#][\\w-]+)([.#][\\w-]+)*[<>']*(\\s+[\\w-]+=(\"[^\"]*\"|'[^']*'|[^\\s\"']+))+\\s*$",
       "action": { "indent": "indent" }
     },
     {
