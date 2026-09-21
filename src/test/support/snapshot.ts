@@ -3,11 +3,13 @@
 import type { DocumentSnapshot, Eol } from '../../pure/textModel';
 
 /**
- * Counts space and tab only, which is what vscode.TextLine.firstNonWhitespaceCharacterIndex does.
+ * Counts space and tab only, which is what snapshotOf in src/documentSnapshot.ts does. It is not what
+ * vscode.TextLine.firstNonWhitespaceCharacterIndex does: that one is `\s`-based and takes NBSP and
+ * U+3000 for indentation, where Slim renders them as content.
  *
  * The copies this replaces used `/\S/`, which additionally treats \v, \f and NBSP as whitespace - so
- * a line like "p" reported 1 here and 0 in the editor. src/test/integration/documentSnapshot
- * pins the two against each other, and this is the definition that lets it hold.
+ * a line like "p" reported 1 here and 0 to Slim. src/test/integration/documentSnapshot pins
+ * this fake against the real adapter, on lines led by exactly those characters.
  */
 function firstNonWhitespaceCharacterIndex(text: string): number {
   let index = 0;

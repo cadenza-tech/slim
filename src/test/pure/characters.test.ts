@@ -83,7 +83,7 @@ suite('pure/characters Test Suite', () => {
       }
     });
 
-    // Deliberately narrower than trim(): VS Code counts space and tab only, so under the trim
+    // Deliberately narrower than trim(): a LineSnapshot counts space and tab only, so under the trim
     // definition a NBSP line reported indent 0 *and* blank, making its indent width infinite.
     test('should not treat exotic whitespace as blank', () => {
       for (const text of ['\u00a0', '\u000b', '\u000c', '\u2028', '\u3000']) {

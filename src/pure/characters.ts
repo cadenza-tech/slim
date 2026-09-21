@@ -61,7 +61,7 @@ export function isNameCharacter(character: string | undefined): boolean {
   return isLetter(code) || isDigit(code) || code === UNDERSCORE || code === DASH;
 }
 
-/** `[ \t]`: the only whitespace Slim indents with, and the only whitespace VS Code counts as indent. */
+/** `[ \t]`: the only whitespace Slim indents with. VS Code's own TextLine counts all of `\s`. */
 export function isSpaceCharacter(character: string | undefined): boolean {
   if (character === undefined) {
     return false;
@@ -126,10 +126,10 @@ export function indentColumns(text: string): number {
 /**
  * True when `text` holds nothing but spaces and tabs.
  *
- * Deliberately narrower than `text.trim() === ''`: VS Code's own firstNonWhitespaceCharacterIndex -
- * the other half of a LineSnapshot - counts space and tab only, and Slim rejects anything else as
- * indentation. Under the trim definition a line holding one NBSP reports index 0 *and* blank, which
- * makes its indent width infinite for a line that renders as content.
+ * Deliberately narrower than `text.trim() === ''`: firstNonWhitespaceCharacterIndex - the other half
+ * of a LineSnapshot - counts space and tab only, because Slim takes nothing else for indentation.
+ * Under the trim definition a line holding one NBSP reports index 0 *and* blank, which makes its
+ * indent width infinite for a line that renders as content.
  */
 export function isBlankText(text: string): boolean {
   return skipSpaces(text, 0) === text.length;
