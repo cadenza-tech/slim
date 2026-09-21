@@ -78,6 +78,26 @@
   `/!` keeps the block behaviour with `comment.block.html.slim`.
 - `rubyline`'s begin was `(==|=)(<>|><|<'|'<|<|>)?|-`, which misses the plain `'`
   trailing-whitespace modifier (`='`, `=='`). It is now `(==|=)([<>']{1,2})?|-`.
+- `rubyline`'s end was `(do\s*\n$)|(?<!\\|,|,\n|\\\n)$`, which decides whether the Ruby carries onto
+  the next line by looking at the last character of this one. Slim strips the line first
+  (`parse_broken_line` asks for `/[,\\]\Z/` after `strip`), so `foo(1, ` with a trailing space does
+  carry on, and upstream's rule closed instead: the `2)` below it was read as a tag named `2`. It is
+  now `(do\s*\n$)|(?<=[^,\\\s])(?=[ \t]*$)`, which asks the same question of the last character with
+  nothing but spaces and tabs behind it. The `[ \t]*` has to sit outside the lookbehind, which
+  Oniguruma requires to be fixed width, and it is a lookahead so that the end stays zero width; the
+  trailing spaces of a line that does *not* carry on are left to the enclosing rule, which is the
+  one visible difference. A blank line between a comma and what continues it no longer ends the
+  region either, which is also what Slim does - `\Z` in `parse_broken_line` allows the newline.
+  This is not haml's rule: haml writes the same idea as `...|(?<=[^,\s])[ \t]*$|^`, whose third
+  alternative slim cannot take - haml's continuations are nested rules that keep `rubyline` off the
+  top of the stack, where slim's `#continuation` is a `match` and stacks nothing, so a bare `^`
+  would end every continuation at the next line.
+- `rubyline`'s Ruby-comment pattern was `#.*$`, which swallowed the spaces after the comment as
+  well. The end above can then never match - it needs a non-space behind it, and the scan is already
+  past them - so `- a = 1 # note ` took the rest of the file for Ruby. It is now
+  `#.*?(?=[ \t]*$)`, which leaves them where the end can see them. Any child pattern reaching the
+  end of the line has this effect on a zero-width end; that is the constraint to keep in mind when
+  adding one.
 - The `(?==+|~)` root pattern dropped its `~` alternative; `~` has no meaning in Slim.
 
 ### Known upstream quirks, pinned by the snapshots

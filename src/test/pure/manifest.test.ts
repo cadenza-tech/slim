@@ -253,6 +253,37 @@ suite('package.json manifest Test Suite', () => {
         `the selector ${injection.injectionSelector} no longer excludes comments, which are bounded by end`
       );
     });
+
+    /**
+     * Slim strips a line before testing it for a continuation, so `[1, ` with a trailing space
+     * carries onto the next line and the grammar has to agree. The pattern is pinned as a string
+     * because one backslash too few writes `[^,\` plus the letter `s`, which stops ending a Ruby
+     * line that happens to end in an `s` - and no fixture would catch that.
+     */
+    test('should end a Ruby line past the whitespace after its last character', () => {
+      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as {
+        repository: Record<string, { end?: string; patterns?: { match?: string }[] }>;
+      };
+      const rubyline = grammar.repository.rubyline;
+      assert.strictEqual(
+        rubyline?.end,
+        '(do\\s*\\n$)|(?<=[^,\\\\\\s])(?=[ \\t]*$)',
+        'the end no longer asks about the last character with only spaces and tabs behind it'
+      );
+      // That end is unreachable if a pattern inside the rule consumes those spaces first.
+      assert.strictEqual(rubyline?.patterns?.[0]?.match, '#.*?(?=[ \\t]*$)', 'the Ruby comment pattern reaches the end of the line');
+    });
+
+    // The fixture's whole point is the space after a continuation marker, which an editor that
+    // trims trailing whitespace removes without a word - leaving a snapshot that agrees with
+    // itself and tests nothing. .editorconfig asks editors not to; this notices when one did.
+    test('should keep the trailing whitespace the multi-line Ruby fixture is made of', () => {
+      const fixture = fs.readFileSync(path.join(ROOT, 'syntaxes', 'fixtures', 'multiline-ruby.slim'), 'utf8').split('\n');
+      for (const marker of [',', '\\', '# note']) {
+        const padded = fixture.some((line) => line.endsWith(`${marker} `) || line.endsWith(`${marker}\t`));
+        assert.ok(padded, `no line ends in \`${marker}\` and whitespace any more, so the case it stands for is untested`);
+      }
+    });
   });
 
   // Replaces the inline node -e in .github/workflows/lint.yml, which hardcoded the version string.

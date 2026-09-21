@@ -29,6 +29,43 @@
 #^^ text.slim meta.tag
 #  ^ text.slim meta.tag entity.name.tag.slim
 #   ^^^^^ text.slim
+>- padded = [1, 
+#^ text.slim meta.line.ruby.slim
+# ^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+#             ^ text.slim meta.line.ruby.slim source.ruby.embedded.slim punctuation.separator.continuation.slim
+#              ^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>  2]
+#^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>= link_to 'Away', \ 
+#^ text.slim meta.line.ruby.slim
+# ^^^^^^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+#                  ^ text.slim meta.line.ruby.slim source.ruby.embedded.slim punctuation.separator.continuation.slim
+#                   ^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>  away_path
+#^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>- names = users,
+#^ text.slim meta.line.ruby.slim
+# ^^^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+#               ^ text.slim meta.line.ruby.slim source.ruby.embedded.slim punctuation.separator.continuation.slim
+>  admins
+#^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>td = foo(1, 
+#^^ text.slim meta.tag entity.name.tag.slim
+#  ^ text.slim
+#   ^ text.slim meta.line.ruby.slim
+#    ^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+#          ^ text.slim meta.line.ruby.slim source.ruby.embedded.slim punctuation.separator.continuation.slim
+#           ^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>  2)
+#^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+>- commented = 1 # note 
+#^ text.slim meta.line.ruby.slim
+# ^^^^^^^^^^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim
+#                ^^^^^^ text.slim meta.line.ruby.slim source.ruby.embedded.slim comment.line.number-sign.ruby
+#                      ^ text.slim
+>p after a padded comment
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
 >p single line
 #^ text.slim meta.tag entity.name.tag.slim
 # ^^^^^^^^^^^^^ text.slim

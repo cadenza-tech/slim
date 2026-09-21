@@ -197,13 +197,13 @@
       ]
     },
     "rubyline": {
-      "end": "(do\\s*\\n$)|(?<!\\\\|,|,\\n|\\\\\\n)$",
+      "end": "(do\\s*\\n$)|(?<=[^,\\\\\\s])(?=[ \\t]*$)",
       "begin": "(==|=)([<>']{1,2})?|-",
       "contentName": "source.ruby.embedded.slim",
       "patterns": [
         {
           "comment": "Hack to let ruby comments work in this context properly",
-          "match": "#.*$",
+          "match": "#.*?(?=[ \\t]*$)",
           "name": "comment.line.number-sign.ruby"
         },
         {
