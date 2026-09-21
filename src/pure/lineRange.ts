@@ -3,7 +3,7 @@
 // The block rule mirrors disableComment's findBlockEnd - a Slim block is its own line plus every
 // line indented deeper - but anchored to the selection's shallowest indent rather than to one line.
 
-import { isBlankText, skipSpaces } from './characters';
+import { indentColumns, isBlankText, skipSpaces } from './characters';
 import type { DocumentSnapshot } from './textModel';
 
 const MIN_TAB_SIZE = 1;
@@ -45,6 +45,9 @@ function sharedPrefix(left: string, right: string): string {
  * the middle of the second one, and asking findBlockEnd about any single line would leave that
  * sibling's remaining children behind. Everything up to the next line at or above the shallowest
  * indent belongs to something selected.
+ *
+ * Indents are compared in columns as Slim counts them, so a file mixing tabs and spaces nests here
+ * the way it renders.
  */
 export function normalizeSelection(selection: SelectionInput, document: DocumentSnapshot): LineRange | null {
   // Dragging over line numbers and Ctrl+L both end on column 0 of the line after the last one wanted.
@@ -67,9 +70,7 @@ export function normalizeSelection(selection: SelectionInput, document: Document
     if (isBlankText(line.text)) {
       continue;
     }
-    if (line.firstNonWhitespaceCharacterIndex < shallowestIndent) {
-      shallowestIndent = line.firstNonWhitespaceCharacterIndex;
-    }
+    shallowestIndent = Math.min(shallowestIndent, indentColumns(line.text));
   }
   // Blank lines defer to what follows them, the way findBlockEnd reads a block: a stanza split by
   // an empty line stays intact, and trailing blanks are not dragged in.
@@ -79,7 +80,8 @@ export function normalizeSelection(selection: SelectionInput, document: Document
     if (isBlankText(line.text)) {
       continue;
     }
-    if (line.firstNonWhitespaceCharacterIndex <= shallowestIndent) {
+    const indent = indentColumns(line.text);
+    if (indent <= shallowestIndent) {
       break;
     }
     blockEnd = index;

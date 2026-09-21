@@ -93,6 +93,12 @@ suite('pure/lineRange Test Suite', () => {
       assert.deepStrictEqual(normalizeSelection(whole(document, 0, 2), document), { startLine: 0, endLine: 4 });
     });
 
+    // Slim counts a tab as running to the next multiple of four columns, so a file may mix the two.
+    test('should measure nesting in columns when tabs and spaces are mixed', () => {
+      const document = snapshotOfLines(['div', '    section', '\t\timg src="a"', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 1, endLine: 2 });
+    });
+
     test('should trim blank lines from both ends', () => {
       const document = snapshotOfLines(['', '  p a', '  p b', '', '']);
       assert.deepStrictEqual(normalizeSelection(whole(document, 0, 4), document), { startLine: 1, endLine: 2 });
