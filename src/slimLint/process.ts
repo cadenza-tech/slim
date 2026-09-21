@@ -245,16 +245,29 @@ export function createProcessRunner(deps: ProcessRunnerDeps): DisposableProcessR
         });
       });
 
-      child.on('close', (code) => {
+      /** The answer for a run this side gave up on, or undefined while it is still wanted. */
+      const abandoned = (): SpawnResult | undefined => {
         if (timedOut) {
-          finish({ ok: false, reason: 'timeout', stderr: decode(stderrChunks) });
-          return;
+          return { ok: false, reason: 'timeout', stderr: decode(stderrChunks) };
         }
-        if (cancelled) {
-          finish({ ok: false, reason: 'cancelled', stderr: decode(stderrChunks) });
-          return;
+        return cancelled ? { ok: false, reason: 'cancelled', stderr: decode(stderrChunks) } : undefined;
+      };
+
+      // 'exit' rather than 'close' for a run already given up on. An executablePath naming a wrapper
+      // that does not `exec` leaves slim-lint as a grandchild holding the stdio pipes; kill() reaches
+      // only the wrapper, and 'close' then waits for the grandchild - with this promise, and its
+      // concurrency slot, held for as long as it lives. Nothing it still writes is wanted.
+      child.on('exit', () => {
+        const result = abandoned();
+        if (result !== undefined) {
+          child.stdout?.destroy();
+          child.stderr?.destroy();
+          finish(result);
         }
-        finish({ ok: true, code, stdout: decode(stdoutChunks), stderr: decode(stderrChunks), durationMs: Date.now() - startedAt });
+      });
+
+      child.on('close', (code) => {
+        finish(abandoned() ?? { ok: true, code, stdout: decode(stdoutChunks), stderr: decode(stderrChunks), durationMs: Date.now() - startedAt });
       });
 
       // Whichever comes first names the result and owns the teardown. A child slow to die on SIGTERM

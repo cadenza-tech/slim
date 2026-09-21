@@ -153,6 +153,20 @@ suite('slimLint/process Test Suite', () => {
       assert.strictEqual(result.reason, 'cancelled');
     });
 
+    // An executablePath naming a wrapper script that does not `exec` - `cd app && bundle exec
+    // slim-lint "$@"`, a docker wrapper - leaves slim-lint as a grandchild holding the stdio pipes.
+    // Killing the wrapper does not close them, and a promise waiting for 'close' keeps its
+    // concurrency slot for as long as the grandchild lives: four of those and nothing lints at all.
+    test('should settle a timed out run whose grandchild still holds the pipes', async () => {
+      const grandchild = 'setTimeout(()=>{},8000)';
+      const wrapper = `require("child_process").spawn(process.execPath,["-e",${JSON.stringify(grandchild)}],{stdio:"inherit"});setTimeout(()=>{},30000)`;
+      const started = Date.now();
+      const result = await runner().run(request(wrapper, { timeoutMs: 500 }));
+      assert.ok(!result.ok);
+      assert.strictEqual(result.reason, 'timeout');
+      assert.ok(Date.now() - started < 5000, `settled after ${Date.now() - started}ms, which is the grandchild's lifetime`);
+    });
+
     // A child slow to die on SIGTERM is still alive when the timeout comes due, and answering
     // `timeout` for it records a back-off against a document whose run was merely superseded: the
     // next save is then skipped as "timed out before" with nothing having timed out.
