@@ -240,7 +240,11 @@ suite('package.json manifest Test Suite', () => {
       const html = grammar.patterns.filter((rule) => rule.begin === '(?=<[\\w\\d\\:]+)');
       assert.strictEqual(html.length, 1, 'the grammar has changed shape');
       assert.strictEqual(html[0]?.end, undefined, 'the HTML line rule ends on a pattern');
-      assert.strictEqual(html[0]?.while, '(?!)');
+      assert.strictEqual(html[0]?.while, '(?!)', 'the HTML line rule is not bounded to its line');
+      for (const begin of ['^\\s*(?=-)', '(?==+)']) {
+        const rule = grammar.patterns.find((candidate) => candidate.begin === begin);
+        assert.strictEqual(rule?.end, '$', `the rule beginning ${begin} no longer ends at the line, which rubyline needs`);
+      }
     });
 
     // An injection applies at every level of the scope stack, so it reaches inside a rule that has
@@ -252,6 +256,24 @@ suite('package.json manifest Test Suite', () => {
         injection.injectionSelector.split(/\s+/).includes('-comment'),
         `the selector ${injection.injectionSelector} no longer excludes comments, which are bounded by end`
       );
+    });
+
+    // An interpolation belongs to the line it is written on. Both rules need the bound: while a `{`
+    // inside the interpolation is open, `nested_braces` is the rule on top and the outer end is
+    // never tried, so bounding only the outer one leaves `p x #{ {a: 1` running to the end of file.
+    test('should end an interpolation at the end of its line', () => {
+      const injection = readJson('syntaxes', 'slim-interpolation.injection.json') as {
+        patterns: { begin?: string; end?: string }[];
+        repository: Record<string, { begin?: string; end?: string }>;
+      };
+      const regions = [...injection.patterns, ...Object.values(injection.repository)].filter((rule) => rule.begin !== undefined);
+      assert.ok(regions.length >= 2, 'the injection no longer opens a region for the interpolation and one for its braces');
+      for (const rule of regions) {
+        assert.strictEqual(rule.end, '\\}|$', `the rule beginning ${rule.begin} runs past its line`);
+      }
+      // The vendored rule reads `#{` too, in the one place the injection's selector keeps it out.
+      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as { repository: Record<string, { end?: string }> };
+      assert.strictEqual(grammar.repository['embedded-ruby']?.end, '\\}{1,2}|$', 'the vendored interpolation rule runs past its line');
     });
 
     /**

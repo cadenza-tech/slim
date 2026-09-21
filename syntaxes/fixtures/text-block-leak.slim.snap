@@ -11,7 +11,7 @@
 #^^ text.slim
 #  ^^^^^^ text.slim
 #        ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
-#          ^^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
+#          ^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
 >p after an interpolation being typed
 #^ text.slim meta.tag entity.name.tag.slim
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
@@ -19,7 +19,7 @@
 #^^ text.slim
 #  ^^^^^^^ text.slim
 #         ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
-#           ^^^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
+#           ^^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
 >p after a quoted text block
 #^ text.slim meta.tag entity.name.tag.slim
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
@@ -36,7 +36,7 @@
 #^^^^ text.slim
 #    ^^^^^^^ text.slim
 #           ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
-#             ^^ text.slim meta.embedded.line.ruby.slim source.ruby
+#             ^ text.slim meta.embedded.line.ruby.slim source.ruby
 >  p sibling of the text block
 #^^ text.slim meta.tag
 #  ^ text.slim meta.tag entity.name.tag.slim

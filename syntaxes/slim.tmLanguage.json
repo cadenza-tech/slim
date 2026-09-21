@@ -163,7 +163,7 @@
           "name": "punctuation.section.embedded.ruby"
         }
       },
-      "end": "\\}{1,2}",
+      "end": "\\}{1,2}|$",
       "patterns": [
         {
           "include": "source.ruby"

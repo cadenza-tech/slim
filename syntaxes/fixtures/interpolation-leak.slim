@@ -1,0 +1,30 @@
+/ An interpolation belongs to the line it is written on, so a `#{` still being typed must not take
+/ the lines below it. The brace forms matter on their own: the rule that counts braces inside the
+/ interpolation is a region of its own, and is what is open at the end of such a line.
+p hello #{name
+p after an interpolation being typed
+a title="x #{y
+p after an attribute value
+p hello #{
+p after a bare marker
+p x #{ {a: 1
+p after an open brace
+p x #{ {a: {b: 1
+p after two open braces
+div
+  p nested #{x
+  p sibling of the interpolation
+p after a nested interpolation
+/ comment #{x
+p after a comment
+/ A splat is the one place the interpolation injection is excluded from, so the vendored rule takes
+/ the `#{` there. Slim rejects this line - the splat never closes - but it must not take the file.
+div *{a: #{b |
+p after a splat
+p hello #{name} there
+p after a complete interpolation
+/ The cost of ending at the line: an attribute value does carry an unfinished interpolation onto
+/ the next line for Slim, which renders this as title="x 3". The continuation reads as Slim here.
+a title="x #{1 +
+2}" href="/"
+p after a multi-line attribute interpolation

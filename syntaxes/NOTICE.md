@@ -51,14 +51,17 @@
   claim the next, more shallowly indented Slim line as a continuation. The `/` and `/!` comments
   keep upstream's `end` because nothing reaches into them: they hold no patterns, and the
   interpolation injection below excludes `comment`. Drop that exclusion and they leak in the same
-  way, which is why `src/test/pure/manifest.test.ts` pins it.
+  way, which is why `src/test/pure/manifest.test.ts` pins the exclusion.
 - The rule for a line of HTML, `(?=<[\w\d\:]+)`, has upstream's `end: $|\/\>` replaced by
   `while: (?!)` - a condition that can never hold, so the rule covers exactly the line it began on.
-  That is what the `$` was for, and it was never reached either: the HTML grammar leaves a tag or a
-  comment open across lines just as an embedded grammar does inside a filter, and `<p class="a"`
-  being typed coloured the rest of the file. Dropping the `\/\>` alternative with it changes no
-  character's scope - checked over 1260 documents against the grammars VS Code ships - because the
-  rule carries no `name` of its own and what follows a `/>` on the same line is HTML either way.
+  That is what the `$` was for, and it stopped being reached as soon as the HTML grammar left a tag
+  or a comment open across lines, just as an embedded grammar does inside a filter: `<p class="a"`
+  being typed then coloured the rest of the file. The `\/\>` alternative went with it, and that one
+  did fire - on a `/>` written in a tag's text content, where it handed the rest of the line back to
+  Slim: `<div>a/> = b` read `= b` as Ruby. Slim renders that line as the text it is, so reading the
+  whole line as HTML is the closer answer. Everywhere else `/>` appears - inside a tag, an attribute
+  value or an HTML comment - the old rule was not on top and no character's scope changes; 1260
+  documents were checked against the grammars VS Code ships.
   The single-line rules next to it keep their `end`: `^\s*(?=-)` and `(?==+)` hold `rubyline`,
   which is meant to span lines when the Ruby ends in a comma or a backslash, and bounding them to
   one line breaks that.
@@ -92,6 +95,9 @@
   alternative slim cannot take - haml's continuations are nested rules that keep `rubyline` off the
   top of the stack, where slim's `#continuation` is a `match` and stacks nothing, so a bare `^`
   would end every continuation at the next line.
+- `embedded-ruby`'s end was `\}{1,2}`, with no bound at the line. It is now `\}{1,2}|$`, so that
+  the three rules that read a `#{` - this one and the two in the interpolation injection below -
+  all end an interpolation with the line it is written on.
 - `rubyline`'s Ruby-comment pattern was `#.*$`, which swallowed the spaces after the comment as
   well. The end above can then never match - it needs a non-space behind it, and the scan is already
   past them - so `- a = 1 # note ` took the rest of the file for Ruby. It is now
@@ -128,7 +134,32 @@ leftmost match on a line and the embedded grammar's rules start earlier; once it
 are entered, the filter's patterns no longer apply inside them. An injection applies at every level
 of the scope stack, which is why it is the right mechanism. Its selector excludes `text.ruby` (the
 `ruby:` filter) and `source.ruby`, where `#{` is not interpolation, and its begin carries a
-`(?<!\\)` lookbehind so the `\#{}` escape stays plain text.
+`(?<!\\)` lookbehind so the `\#{}` escape stays plain text. It also excludes `comment`, for the
+reason given under the filters above.
+
+Both of its rules end at `\}|$`, the brace or the end of the line. An interpolation belongs to the
+line it is written on, and without the `$` a `#{` still being typed opened a Ruby region that ran
+to whatever line finally held a `}`, colouring everything between. The `$` costs nothing on a
+complete interpolation, because the brace is the leftmost match. `#nested_braces` needs it as much
+as the outer rule: while a `{` inside the interpolation is open, it is the rule on top of the
+stack, and the outer `end` is never tried - the same reason the filters above are bounded by
+`while`. What neither can bound is Ruby's own syntax: `#{ "abc`, `#{ a(1,` and `#{ <<~X` leave a
+rule of `source.ruby` open above both, and those still run on.
+
+The `$` has one real cost, which `syntaxes/fixtures/interpolation-leak.slim` pins. An attribute
+value is the one place where Slim itself carries an unterminated `#{` onto the next line, in all
+four attribute notations: it renders `a title="x #{1 +` / `2}" href="/"` as `title="x 3"`, and the
+continuation line is now read as Slim. Nothing else does - a tag's inline text, a `|` text block
+and every filter body end the interpolation with the line, which was checked by rendering them
+through Slim 5.2.2.
+
+The vendored `embedded-ruby` rule ends at `\}{1,2}|$` for the same reason, and is listed among the
+modifications above. The injection wins at the same position everywhere it is not excluded, so the
+only place the vendored rule is reached is inside a splat, where the selector excludes the
+injection: `div *{a: #{b |` ran to the end of the file, and the splat's own `|$` never got a turn
+because the interpolation sat above it. Slim rejects that line (`Expected closing delimiter }`), so
+nothing a user can write reaches it - the rule ends at its line because the two beside it do, not
+because that one input needed it.
 
 ### Upstream license (ruby-slim.tmbundle)
 

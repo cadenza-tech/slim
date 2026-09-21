@@ -28,11 +28,14 @@ starts and ends, not how its contents are tokenized. Highlighting *inside* a fil
 embedded grammar at runtime and has to be checked by hand in the Extension Development Host
 (`Developer: Inspect Editor Tokens and Scopes`).
 
-The stubs a filter includes do carry one rule, which opens on `LEFT_OPEN_BY_THE_STUB` and never
-finds its end. It stands for whatever a real grammar leaves open across lines - a block comment, a
-template literal, a `{`. The other fixtures pin where a region ends when nothing inside it is open;
-this one pins that it ends *anyway*, which is the whole difference between `while` and `end`: an
-open construct sits above the filter on the rule stack, and a filter bounded by `end` is never asked
-again. `filter-leak.slim` and `text-block-leak.slim` are the only fixtures that hold the word. The
-text block leaves something open a second way, needing no stub at all: an unterminated `#{` opens a
-region of the interpolation injection, which is this repository's own grammar.
+The stubs a region hands its body to do carry one rule, which opens on `LEFT_OPEN_BY_THE_STUB` and
+never finds its end. It stands for whatever a real grammar leaves open across lines - a block
+comment, a template literal, a `{`, an HTML tag. The other fixtures pin where a region ends when
+nothing inside it is open; the three `*-leak.slim` fixtures pin that it ends *anyway*, which is the
+whole difference between `while` and `end`: an open construct sits above the region on the rule
+stack, and a region bounded by `end` is never asked again. `filter-leak.slim`,
+`text-block-leak.slim` and `html-leak.slim` are the fixtures that hold the word.
+
+`text-block-leak.slim` and `interpolation-leak.slim` leave something open a second way, needing no
+stub at all: an unterminated `#{` opens a region of the interpolation injection, which is this
+repository's own grammar.
