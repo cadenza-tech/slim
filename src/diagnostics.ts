@@ -195,6 +195,10 @@ export class DiagnosticsController implements vscode.Disposable {
     const key = document.uri.toString();
     const source = document.getText();
     if (force) {
+      // The digest goes now, not when the forced run publishes: it may never get to. A run dropped
+      // as stale or answered with an unparseable report leaves the panel as it was, and a digest
+      // left beside it would let the next save reuse a report formed under the old rules.
+      this.publishedFor.delete(key);
       this.client.forget(document.uri);
     } else if (shouldReuseReport(this.publishedFor.get(key), source, force)) {
       // The diagnostics on screen were produced by slim-lint from exactly this text, under settings
