@@ -1,3 +1,4 @@
+.claude/**
 .vscode/**
 .vscode-test/**
 .vscode-test.mjs
@@ -16,7 +17,9 @@ yarn.lock
 .c8rc.json
 .mocharc.json
 biome.json
+CLAUDE.md
 esbuild.js
+images/icon.svg
 syntaxes/fixtures/**
 **/tsconfig.json
 **/*.map
