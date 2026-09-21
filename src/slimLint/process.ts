@@ -257,12 +257,21 @@ export function createProcessRunner(deps: ProcessRunnerDeps): DisposableProcessR
         finish({ ok: true, code, stdout: decode(stdoutChunks), stderr: decode(stderrChunks), durationMs: Date.now() - startedAt });
       });
 
+      // Whichever comes first names the result and owns the teardown. A child slow to die on SIGTERM
+      // is still alive when the other one arrives: a cancelled run reported as `timeout` would record
+      // a back-off nothing earned, and a second terminate() would orphan the first kill timer.
       timeoutTimer = setTimeout(() => {
+        if (cancelled) {
+          return;
+        }
         timedOut = true;
         terminate();
       }, request.timeoutMs);
 
       subscription = token?.onCancellationRequested(() => {
+        if (timedOut || cancelled) {
+          return;
+        }
         cancelled = true;
         terminate();
       });

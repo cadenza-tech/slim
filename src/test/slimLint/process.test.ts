@@ -139,6 +139,37 @@ suite('slimLint/process Test Suite', () => {
       assert.strictEqual(result.reason, 'cancelled');
     });
 
+    // Nothing here can see the teardown running once rather than twice; what it pins is that a
+    // second cancellation is answered like the first.
+    test('should still answer cancelled when cancelled twice', async () => {
+      const cancellation = token();
+      const promise = runner().run(request('setTimeout(()=>{},30000)'), cancellation);
+      setTimeout(() => {
+        cancellation.cancel();
+        cancellation.cancel();
+      }, 50);
+      const result = await promise;
+      assert.ok(!result.ok);
+      assert.strictEqual(result.reason, 'cancelled');
+    });
+
+    // A child slow to die on SIGTERM is still alive when the timeout comes due, and answering
+    // `timeout` for it records a back-off against a document whose run was merely superseded: the
+    // next save is then skipped as "timed out before" with nothing having timed out.
+    test('should keep calling a cancelled run cancelled when the timeout expires while it dies', async function () {
+      if (process.platform === 'win32') {
+        // taskkill /F has no grace period for the timeout to land in.
+        this.skip();
+      }
+      const cancellation = token();
+      const ignoresSigterm = 'process.on("SIGTERM",()=>{});setTimeout(()=>{},30000)';
+      const promise = runner({ killGraceMs: 1500 }).run(request(ignoresSigterm, { timeoutMs: 1000 }), cancellation);
+      setTimeout(() => cancellation.cancel(), 500);
+      const result = await promise;
+      assert.ok(!result.ok);
+      assert.strictEqual(result.reason, 'cancelled');
+    });
+
     // slim-lint exits before draining stdin on a bad flag (64) or broken config (78). Without an
     // 'error' listener on child.stdin the resulting EPIPE is an uncaught exception that takes down
     // the extension host, so this test failing would show up as a crash, not an assertion.
