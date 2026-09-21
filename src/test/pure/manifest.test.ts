@@ -200,6 +200,20 @@ suite('package.json manifest Test Suite', () => {
         assert.ok(survives, `the rule beginning ${rule.begin} has only third-party includes and vanishes in stock VS Code`);
       }
     });
+
+    // A filter's `end` is only tried while the filter is on top of the rule stack. A construct the
+    // embedded grammar leaves open - a `/*`, a template literal - sits above it, so the filter never
+    // ends and the rest of the file is coloured as that construct. `while` is asked of every line
+    // whatever is open, and pops it all.
+    test('should bound every filter by while rather than end', () => {
+      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as { patterns: { begin?: string; end?: string; while?: string }[] };
+      const filters = grammar.patterns.filter((rule) => rule.begin !== undefined && /^\^\(\\s\*\)\(\w+\):\$$/.test(rule.begin));
+      assert.strictEqual(filters.length, 9, 'the pattern no longer recognises the filter rules');
+      for (const rule of filters) {
+        assert.strictEqual(rule.end, undefined, `the rule beginning ${rule.begin} ends on a pattern`);
+        assert.strictEqual(rule.while, '^(?=\\1\\s|\\s*$)', `the rule beginning ${rule.begin}`);
+      }
+    });
   });
 
   // Replaces the inline node -e in .github/workflows/lint.yml, which hardcoded the version string.

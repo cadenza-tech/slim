@@ -1,0 +1,29 @@
+/ Every filter below leaves a construct of its embedded grammar open. The line after it must be a
+/ Slim tag again, and a filter nested under a tag must hand back to its sibling.
+javascript:
+  const a = LEFT_OPEN_BY_THE_STUB
+p after javascript
+coffee:
+  a = LEFT_OPEN_BY_THE_STUB
+p after coffee
+markdown:
+  LEFT_OPEN_BY_THE_STUB
+
+  still markdown
+p after markdown
+css:
+  .a { LEFT_OPEN_BY_THE_STUB
+p after css
+scss:
+  .a { LEFT_OPEN_BY_THE_STUB
+p after scss
+less:
+  .a { LEFT_OPEN_BY_THE_STUB
+p after less
+ruby:
+  a = LEFT_OPEN_BY_THE_STUB
+p after ruby
+div
+  javascript:
+    const b = LEFT_OPEN_BY_THE_STUB
+  p after a nested filter

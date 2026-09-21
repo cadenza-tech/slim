@@ -25,12 +25,25 @@
   survived, but an HTML tag or comment left open in the body ran past the end of the filter in the
   same way. The rule now hands only the inside of a `<% %>` tag to `source.ruby`, the shape the ERB
   grammar shipped with vscode-ruby and Ruby LSP has, with `# ...` matched as a comment first so
-  that it cannot swallow the `%>` that closes the tag. It is also the one filter written as
-  `begin`/`while` instead of `begin`/`end`: a filter's `end` is only tried while the filter is on
-  top of the rule stack, so a tag still missing its `%>` would otherwise take the rest of the file
-  for Ruby. What it shares with the other filters is how the body is told from what follows - by the
-  header's own leading whitespace plus one more character - so a body indented with tabs under a
-  header indented with spaces is not recognised as one.
+  that it cannot swallow the `%>` that closes the tag. It is written as `begin`/`while` instead of
+  `begin`/`end`: a filter's `end` is only tried while the filter is on top of the rule stack, so a
+  tag still missing its `%>` would otherwise take the rest of the file for Ruby. What it shares with
+  the other filters is how the body is told from what follows - by the header's own leading
+  whitespace plus one more character - so a body indented with tabs under a header indented with
+  spaces is not recognised as one.
+- Every filter is written as `begin`/`while` (`^(?=\1\s|\s*$)`) where upstream has `begin`/`end`
+  (`^(?!(\1\s)|\s*$)`), for the reason given under `erb:` above. The two tell a body line from what
+  follows it in the same way, and against the grammars VS Code ships every well-formed filter
+  tokenizes the same either way - checked over 104 documents, eight filters in thirteen shapes.
+  (Not the same *rule*, though: a zero-width `while` anchors `\G` at column 0 of every body line,
+  where the `end` form leaves it unset. No `\G` rule in those grammars can reach the start of an
+  indented line, but a third-party one that could would be a real difference.) What `end` could not
+  do is end the region while the embedded grammar has something open - a `/*`, a template literal,
+  a heredoc, or simply the `{` of a CSS rule still being typed - because a filter's `end` is only
+  tried while the filter is on top of the rule stack; everything below it was then coloured as that
+  construct to the end of the file. `while` is asked of every line whatever is open, and pops it
+  all - which also takes back the line after a `markdown:` body, whose own paragraph rule used to
+  claim the next, more shallowly indented Slim line as a continuation.
 - The `sass:` filter carries a second pattern that can never match, `(?!)`, next to its
   `source.sass` include. `source.sass` comes from third-party extensions only, and without the
   extra pattern the rule is dropped in stock VS Code the same way: `sass` became a tag name and the
