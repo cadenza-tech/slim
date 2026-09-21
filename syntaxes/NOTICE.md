@@ -52,6 +52,16 @@
   keep upstream's `end` because nothing reaches into them: they hold no patterns, and the
   interpolation injection below excludes `comment`. Drop that exclusion and they leak in the same
   way, which is why `src/test/pure/manifest.test.ts` pins it.
+- The rule for a line of HTML, `(?=<[\w\d\:]+)`, has upstream's `end: $|\/\>` replaced by
+  `while: (?!)` - a condition that can never hold, so the rule covers exactly the line it began on.
+  That is what the `$` was for, and it was never reached either: the HTML grammar leaves a tag or a
+  comment open across lines just as an embedded grammar does inside a filter, and `<p class="a"`
+  being typed coloured the rest of the file. Dropping the `\/\>` alternative with it changes no
+  character's scope - checked over 1260 documents against the grammars VS Code ships - because the
+  rule carries no `name` of its own and what follows a `/>` on the same line is HTML either way.
+  The single-line rules next to it keep their `end`: `^\s*(?=-)` and `(?==+)` hold `rubyline`,
+  which is meant to span lines when the Ruby ends in a comma or a backslash, and bounding them to
+  one line breaks that.
 - The `sass:` filter carries a second pattern that can never match, `(?!)`, next to its
   `source.sass` include. `source.sass` comes from third-party extensions only, and without the
   extra pattern the rule is dropped in stock VS Code the same way: `sass` became a tag name and the

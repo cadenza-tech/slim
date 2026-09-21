@@ -226,6 +226,23 @@ suite('package.json manifest Test Suite', () => {
       }
     });
 
+    /**
+     * A line of HTML is one line of Slim, and the HTML grammar can leave a tag open across lines,
+     * so this rule needs the same treatment with a `while` that can never match: it is asked at the
+     * start of the next line, fails, and pops the rule and whatever the HTML grammar stacked on it.
+     *
+     * The neighbouring single-line rules keep their `end` deliberately. `^\s*(?=-)` and `(?==+)`
+     * hold `rubyline`, which is meant to span lines when the Ruby ends in a comma or a backslash;
+     * bounding them to one line was measured to break exactly that.
+     */
+    test('should bound a line of HTML to that line', () => {
+      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as { patterns: { begin?: string; end?: string; while?: string }[] };
+      const html = grammar.patterns.filter((rule) => rule.begin === '(?=<[\\w\\d\\:]+)');
+      assert.strictEqual(html.length, 1, 'the grammar has changed shape');
+      assert.strictEqual(html[0]?.end, undefined, 'the HTML line rule ends on a pattern');
+      assert.strictEqual(html[0]?.while, '(?!)');
+    });
+
     // An injection applies at every level of the scope stack, so it reaches inside a rule that has
     // no patterns of its own. Without `-comment` an unterminated `#{` under `/` or `/!` opens a
     // Ruby region that outlives the comment and colours the rest of the file.
