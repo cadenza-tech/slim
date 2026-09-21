@@ -84,9 +84,175 @@ suite('pure/renderPartial Test Suite', () => {
     });
 
     // The literal is unterminated for as long as the user is typing the name.
-    test('should treat an unterminated literal as reaching the end of the line', () => {
+    test('should take an unterminated literal, which is what typing a name produces', () => {
       assert.strictEqual(nameAt("= render 'sha|"), 'sha');
       assert.strictEqual(replaced("= render 'sha|", 'shared/foo'), "= render 'shared/foo");
+    });
+
+    // With the closing quote missing - autoClosingQuotes off, or the quote deleted - the literal runs
+    // to the end of the line, and a range that followed it there would make accepting a completion
+    // delete the rest of the call.
+    test('should end an unterminated literal where the name ends, not where the line does', () => {
+      assert.strictEqual(nameAt("= render 'sha|, locals: { post: @post }"), 'sha');
+      assert.strictEqual(replaced("= render 'sha|, locals: { post: @post }", 'shared/foo'), "= render 'shared/foo, locals: { post: @post }");
+      assert.strictEqual(replaced("= render 'shared/fo|o) if x", 'shared/foo'), "= render 'shared/foo) if x");
+      assert.strictEqual(nameAt("= render 'sha, lo|cals: { a: 1 }"), null);
+    });
+
+    // A directory may carry a dash or a dot even though a partial's own name may not.
+    test('should keep a dash or a dot inside an unterminated name', () => {
+      assert.strictEqual(nameAt("= render 'admin/my-dir/na|"), 'admin/my-dir/na');
+      assert.strictEqual(nameAt("= render 'foo.html|"), 'foo.html');
+    });
+
+    // A later argument written with the same quote closes the literal as far as a scanner can tell,
+    // which is the usual shape under RuboCop's single quotes. A partial path holds no comma, so one
+    // inside the literal says the closing quote belongs to something else.
+    test('should end a name that a later literal appears to close', () => {
+      assert.strictEqual(nameAt("= render 'sha|, title: 'x'"), 'sha');
+      assert.strictEqual(replaced("= render 'sha|, title: 'x'", 'shared/foo'), "= render 'shared/foo, title: 'x'");
+      assert.strictEqual(nameAt("= render partial: 'sha|, locals: { a: 'b' }"), 'sha');
+      assert.strictEqual(nameAt("= render 'sha, title: 'x|'"), null);
+      // The name ends where the call goes on, not at the comma, and the quote that seemed to close
+      // it no longer bounds it: a cursor between the two is outside the name.
+      assert.strictEqual(nameAt("= render 'sha| , title: 'x'"), 'sha');
+      assert.strictEqual(nameAt("= render 'sha, ti|tle: 'x'"), null);
+    });
+
+    // The comma that gives a later argument away is one in the path itself. One inside `#{...}` is
+    // Ruby's, in a literal that is complete: cutting the name there resumes the scan inside the
+    // interpolation, takes the real closing quote for an opening one, and loses every argument after.
+    test('should not take a comma inside an interpolation for the end of the name', () => {
+      assert.strictEqual(nameAt(`= render "cards/#{card.kind.tr('-', '_')}", layout: 'bo|x'`), 'box');
+      assert.strictEqual(nameAt(`= render partial: "cards/#{kind.tr('-', '_')}", spacer_template: 'cards/spa|cer'`), 'cards/spacer');
+      assert.strictEqual(nameAt(`= render "cards/|#{card.kind.tr('-', '_')}"`), "cards/#{card.kind.tr('-', '_')}");
+      assert.strictEqual(replaced(`= render "cards/|#{card.kind.tr('-', '_')}"`, 'cards/item'), '= render "cards/item"');
+      assert.strictEqual(nameAt('= render "sha|, title: "x"'), 'sha');
+    });
+
+    // Single quotes do not interpolate, so `#{` there is a mistake - but it is one people make, the
+    // line is complete, and cutting the name inside it writes `'shared/foo"-", "_")}'` on accepting.
+    test('should step over an interpolation in single quotes as well', () => {
+      assert.strictEqual(nameAt(`= render 'cards/#{kind.tr("-", "_")}', layout: 'bo|x'`), 'box');
+      assert.strictEqual(replaced(`= render 'cards/|#{kind.tr("-", "_")}', layout: 'box'`, 'shared/foo'), "= render 'shared/foo', layout: 'box'");
+      // The first line resolves even with the name cut inside it: what is left of the name reads as
+      // a value left open, which ends just in front of `layout:`. This one has no such luck.
+      assert.strictEqual(nameAt(`= render 'cards/#{a(1, "x")}', layout: 'bo|x'`), 'box');
+      // What every `#{` is while it is typed: a `#` alone, and part of the name.
+      assert.strictEqual(nameAt("= render 'sha#|, title: 'x'"), 'sha#');
+    });
+
+    // An interpolation is stepped over, not stopped at: the comma behind `#{kind}` is the call's, and
+    // a name that has lost its quote is closed by the next argument's just the same. Stopping at the
+    // `#{` leaves the name running to that quote, and accepting a completion takes `, title: ` along.
+    test('should still find the comma behind an interpolation', () => {
+      assert.strictEqual(nameAt('= render "car|ds/#{kind}, title: "x"'), 'cards/#{kind}');
+      assert.strictEqual(replaced('= render "car|ds/#{kind}, title: "x"', 'shared/foo'), '= render "shared/foo, title: "x"');
+      assert.strictEqual(nameAt("= render partial: 'cards/#{kind}|, collection: @cards, spacer_template: 'spacer'"), 'cards/#{kind}');
+      assert.strictEqual(nameAt("= render 'cards/#{kind}, ti|tle: 'x'"), null);
+      // A nested literal may hold the brace and the comma both; neither is the path's. The cursor
+      // sits in the name: a later argument resolves even when the name is cut at the nested brace.
+      assert.strictEqual(nameAt(`= render "cards/|#{h['}', ',']}", layout: 'box'`), "cards/#{h['}', ',']}");
+      // `#{` with nothing to close it is text, and the comma behind it counts.
+      assert.strictEqual(nameAt("= render 'sha#{|, title: 'x'"), 'sha#{');
+    });
+
+    // The `}`, the quotes and the spaces of an interpolation are not where a name left open ends.
+    test('should keep an interpolation whole in a name left open', () => {
+      assert.strictEqual(nameAt(`= render "cards/#{ki|nd}, title: 'x'`), 'cards/#{kind}');
+      assert.strictEqual(replaced(`= render "cards/#{ki|nd}, title: 'x'`, 'shared/foo'), `= render "shared/foo, title: 'x'`);
+      assert.strictEqual(nameAt(`= render "cards/#{a ? b : c}|, title: 'x'`), 'cards/#{a ? b : c}');
+      assert.strictEqual(nameAt(`= render "cards/#{kind.tr('-', '_')}|, title: 'x'`), "cards/#{kind.tr('-', '_')}");
+    });
+
+    // Each interpolation of a name is stepped over, not the first alone, and one left open ahead of
+    // it changes nothing about the next: `#{ki` is what `#{kind}` is while it is typed in front of
+    // a `/#{size}` that is already there.
+    test('should step over every interpolation of a name', () => {
+      assert.strictEqual(nameAt(`= render "#{dir}/#{kind.tr('-', '_')}|", layout: 'box'`), "#{dir}/#{kind.tr('-', '_')}");
+      assert.strictEqual(nameAt(`= render "#{dir}/#{kind.tr('-', '_')}", layout: 'bo|x'`), 'box');
+      assert.strictEqual(replaced('= render "cards/#{ki|/#{size}", title: "x"', 'shared/foo'), '= render "shared/foo", title: "x"');
+      assert.strictEqual(replaced(`= render "#{ki|/#{kind.tr('-', '_')}", layout: 'box'`, 'shared/foo'), `= render "shared/foo", layout: 'box'`);
+      assert.strictEqual(nameAt("= render '#{#{|a}, title: 'x'"), '#{#{a}');
+    });
+
+    // The brace that ends the line closes the hash, not the interpolation. Taken for the
+    // interpolation's, it makes the name the rest of the line and the completion deletes the locals.
+    test('should not close an interpolation with a brace that closes something else', () => {
+      assert.strictEqual(nameAt('= render "cards/#{ki|, locals: { a: 1 }'), 'cards/#{ki');
+      assert.strictEqual(replaced('= render "cards/#{ki|, locals: { a: 1 }', 'shared/foo'), '= render "shared/foo, locals: { a: 1 }');
+      assert.strictEqual(replaced("= render 'cards/#{ki|, locals: { a: 1 }", 'shared/foo'), "= render 'shared/foo, locals: { a: 1 }");
+    });
+
+    // A brace left over further along does close it, as it does for Ruby, and the name runs that
+    // far. Telling the two apart would take reading the Ruby inside the interpolation.
+    test('should let a stray brace close an interpolation left open', () => {
+      assert.strictEqual(nameAt('= render "cards/#{ki|, title: "x" }'), 'cards/#{ki, title: "x" }');
+      // Not one behind the quote that closes the literal: an interpolation ends inside its own.
+      assert.strictEqual(nameAt("= render 'cards/#{ki|, title: 'x' }"), 'cards/#{ki');
+      // And a `#` with no brace of its own opens nothing for the hash behind it to close.
+      assert.strictEqual(nameAt("= render 'posts/#|, locals: { a: 1 }"), 'posts/#');
+    });
+
+    // The comma rule is for a partial name only. Applied to any other value it cuts `'a, partial: '`
+    // off at the comma, reads the words after it as a keyword, and takes the quote that closes the
+    // value for the one that opens a partial name.
+    test('should leave a comma alone in a literal that is not a partial name', () => {
+      assert.strictEqual(nameAt("= render 'x', title: 'a, b', layout: 'l|'"), 'l');
+      assert.strictEqual(nameAt("= render 'x', title: 'a, partial: |'"), null);
+      assert.strictEqual(nameAt("= render 'x', title: 'a, partial: '|"), null);
+      assert.strictEqual(nameAt("= render 'x', title: 'a, layout: 'b|"), null);
+    });
+
+    // While a value is being typed its closing quote is missing, and Ruby reads it to the end of the
+    // line. What follows it there is the rest of the call, as it is after an unterminated name, and
+    // giving up on the line would lose a partial name that is complete.
+    test('should read on past a value that is still unterminated', () => {
+      assert.strictEqual(nameAt(`= render 'x', title: 'abc, layout: "l|"`), 'l');
+      assert.strictEqual(nameAt(`= render 'x', title: "abc, layout: 'l|'`), 'l');
+      assert.strictEqual(nameAt(`= render 'x', title: "it's, layout: 'l|'`), 'l');
+    });
+
+    // A title holds what a path does not - spaces, a bracket, an apostrophe, the word `do` - and none
+    // of it is Ruby's to read. Cut at the first space or quote, the value leaves `do` to end the
+    // argument list and `[` to take the rest of the line as a group.
+    test('should end a value left open at its first comma and nowhere before it', () => {
+      assert.strictEqual(nameAt(`= render 'x', title: 'What to do, layout: "l|"`), 'l');
+      assert.strictEqual(nameAt(`= render 'x', title: 'Sign in [beta, layout: "l|"`), 'l');
+      assert.strictEqual(nameAt(`= render('x', title: 'Well done :) now, layout: "l|")`), 'l');
+      assert.strictEqual(nameAt(`= render 'x', title: "What's there to do, layout: 'l|'`), 'l');
+      // With no comma behind it there is no next argument, and the words are the title's.
+      assert.strictEqual(nameAt(`= render 'x', title: 'abc layout: "l|"`), null);
+      // The first comma may be the title's own, and the words behind that one are Ruby's again.
+      assert.strictEqual(nameAt(`= render 'x', title: 'Well, what to do, layout: "l|"`), null);
+    });
+
+    // One literal is unfinished at a time while typing; here two are, and the name behind them is
+    // still found.
+    test('should reach a name past two literals cut short', () => {
+      assert.strictEqual(nameAt(`= render 'sha, title: "abc, layout: 'l|'`), 'l');
+    });
+
+    // A literal cut short puts the scan back inside text its search has been through, where an
+    // escaped quote opens another literal. What cut it makes no difference. The value left open is
+    // cut at its comma, and so is each `\'b` behind it: one and seven. The name holding a comma is
+    // closed by a quote far behind it, and so is each `\'b` it leaves but the last: eight of eight.
+    // Eight still resolve - far more than a line being typed holds - and nine do not.
+    test('should give up on a call that keeps cutting literals short', () => {
+      const open = (count: number): string => `= render 'x', title: 'a${", x: \\'b".repeat(count)}, layout: "l|"`;
+      const commas = (count: number): string => `= render partial: 'a${", partial: \\'b".repeat(count)}', layout: "l|"`;
+      assert.strictEqual(nameAt(open(7)), 'l');
+      assert.strictEqual(nameAt(open(8)), null);
+      assert.strictEqual(nameAt(commas(8)), 'l');
+      assert.strictEqual(nameAt(commas(9)), null);
+    });
+
+    // Past the limit the line is not one being typed, and a name cut short in it is as much a guess
+    // under the cursor as anywhere else. A name that runs to the end of the line is not cut at all.
+    test('should refuse a ninth literal cut short even under the cursor', () => {
+      const eight = `= render 'x', title: 'a${", x: \\'b".repeat(7)}, layout: `;
+      assert.strictEqual(nameAt(`${eight}"l|, more: 1`), null);
+      assert.strictEqual(nameAt(`${eight}"l|`), 'l');
     });
 
     // Both ends count as inside so that re-editing an existing name resolves and completes.
@@ -199,13 +365,50 @@ suite('pure/renderPartial Test Suite', () => {
   // A quadratic scan here would freeze the extension host on a line holding a data URI, once per
   // keystroke. The repeated-token line is the input that punishes slicing the prefix per candidate:
   // without the candidate limit its 5000 `render` tokens would each slice the whole prefix.
+  //
+  // The line of keywords is the one that punishes looking for a comma past the literal being read:
+  // every `partial:` value is a name, and none of them holds a comma to stop the search early.
   test('should stay fast on a very long line', () => {
     const repeated = `= render ${'render '.repeat(5000)}'x'`;
     const dataUri = `img src="data:image/png;base64,${'A'.repeat(100000)}" = render 'x'`;
+    const keywords = `= render ${"partial: 'x' ".repeat(20000)}`;
     const elapsed = fastestOf(() => {
       partialReferenceAt(dataUri, 100060);
       partialReferenceAt(repeated, repeated.length);
+      partialReferenceAt(keywords, keywords.length);
     });
     assert.ok(elapsed < FAST_ENOUGH_MS, `took ${elapsed}ms`);
+  });
+
+  // A literal cut short resumes the scan inside text its search has been through, and there each
+  // escaped quote opens another whose search is the rest of the line: a name left open, a value left
+  // open, a name closed by the last quote of the line and cut at its comma. Each line is held to the
+  // budget on its own: under c8 these scans run several times slower, and one shared budget would
+  // leave no guard the room a loaded machine needs.
+  test('should stay fast on a line of literals that are cut short', () => {
+    const lines = [
+      `= render partial: '${"\\' partial: ".repeat(5000)}`,
+      `= render 'x', title: 'a${", x: \\'b".repeat(5000)}`,
+      `= render partial: 'a${", partial: \\'b".repeat(5000)}'`
+    ];
+    for (const line of lines) {
+      const elapsed = fastestOf(() => {
+        partialReferenceAt(line, line.length);
+      });
+      assert.ok(elapsed < FAST_ENOUGH_MS, `${line.slice(0, 40)} took ${elapsed}ms`);
+    }
+  });
+
+  // An interpolation is searched for its closing brace, and one that has none is searched to the end
+  // of its literal: once per `#{` unless the first failure ends the looking, in a name closed by a
+  // later quote and in one that nothing closes.
+  test('should stay fast on a line of interpolations that never close', () => {
+    const lines = [`= render partial: '${'#{'.repeat(20000)}, x'`, `= render '${'#{'.repeat(20000)}`];
+    for (const line of lines) {
+      const elapsed = fastestOf(() => {
+        partialReferenceAt(line, line.length);
+      });
+      assert.ok(elapsed < FAST_ENOUGH_MS, `${line.slice(0, 40)} took ${elapsed}ms`);
+    }
   });
 });
