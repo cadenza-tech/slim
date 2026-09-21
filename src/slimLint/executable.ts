@@ -156,7 +156,8 @@ export function resolveOnPath(command: string, deps: ResolveDeps): string | null
   for (const rawEntry of rawPath.split(separator)) {
     // cmd.exe tolerates quoted PATH entries and some installers write them; existsSync does not.
     const entry = isWindows && rawEntry.startsWith('"') && rawEntry.endsWith('"') && rawEntry.length >= 2 ? rawEntry.slice(1, -1) : rawEntry;
-    if (!p.isAbsolute(entry)) {
+    // win32 calls `\tools` absolute, but it is relative to a drive - the host's here, the cwd's at spawn.
+    if (!p.isAbsolute(entry) || (isWindows && !/^(?:[A-Za-z]:|[\\/]{2})/.test(entry))) {
       continue;
     }
     for (const extension of extensions) {

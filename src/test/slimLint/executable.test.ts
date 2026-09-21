@@ -173,6 +173,17 @@ suite('slimLint/executable Test Suite', () => {
       assert.strictEqual(resolveOnPath('slim-lint', windows)?.toLowerCase(), 'c:\\ruby\\bin\\slim-lint.bat');
     });
 
+    // path.win32 calls `\tools` absolute, but it is relative to a drive: the probe resolves it on
+    // the extension host's drive and the spawn on the drive of the linted directory. A drive letter
+    // or a UNC prefix is what makes an entry mean one place.
+    test('should skip a win32 PATH entry that names no drive', () => {
+      const d = deps(
+        { '\\tools\\slim-lint.exe': '', '\\\\server\\share\\bin\\slim-lint.exe': '' },
+        { platform: 'win32', env: { PATH: '\\tools;\\\\server\\share\\bin', PATHEXT: '.EXE' } }
+      );
+      assert.strictEqual(resolveOnPath('slim-lint', d)?.toLowerCase(), '\\\\server\\share\\bin\\slim-lint.exe');
+    });
+
     test('should try PATHEXT extensions on win32', () => {
       const d = deps({ 'C:\\Ruby\\bin\\slim-lint.bat': '' }, { platform: 'win32', env: { PATH: 'C:\\Ruby\\bin', PATHEXT: '.EXE;.BAT;.CMD' } });
       // The extension's casing comes from PATHEXT and is irrelevant on a case-insensitive
