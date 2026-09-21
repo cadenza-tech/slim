@@ -63,6 +63,21 @@ suite('pure/renderPartial Test Suite', () => {
       assert.strictEqual(nameAt('td.a{b="1"}= render \'x|\''), 'x');
     });
 
+    // Slim's whitespace modifiers ride on the marker. The Rails snippets leave such a marker alone,
+    // because their body would overwrite it; a partial name sits past it and overwrites nothing.
+    test('should take a marker that carries a whitespace modifier', () => {
+      assert.strictEqual(nameAt("=> render 'x|'"), 'x');
+      assert.strictEqual(nameAt("=< render 'x|'"), 'x');
+      assert.strictEqual(nameAt("=<> render 'x|'"), 'x');
+      assert.strictEqual(nameAt("==' render 'x|'"), 'x');
+      assert.strictEqual(nameAt("td => render 'x|'"), 'x');
+    });
+
+    test('should not mistake a text marker or a tag modifier for a script marker', () => {
+      assert.strictEqual(nameAt("' render 'x|'"), null);
+      assert.strictEqual(nameAt("p> render 'x|'"), null);
+    });
+
     test('should take an empty literal, which is where completion starts', () => {
       assert.strictEqual(nameAt("= render '|'"), '');
       assert.strictEqual(nameAt('= render "|"'), '');

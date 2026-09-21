@@ -230,6 +230,31 @@ export function computeCompletionWord(linePrefix: string): CompletionWord | null
 }
 
 /**
+ * Whether the identifier `linePrefix` ends in is written as Ruby: after a `-`, or after an `=` with
+ * or without its whitespace modifiers.
+ *
+ * computeCompletionWord cannot answer this. Its null for `=>` and `='` means "a snippet body would
+ * overwrite this marker", which is a fact about the Rails snippets rather than about the position -
+ * and a caller that only reads what follows the marker, as partial navigation does, overwrites
+ * nothing.
+ */
+export function isScriptPosition(linePrefix: string): boolean {
+  const length = identifierLength(linePrefix);
+  if (length === 0) {
+    return false;
+  }
+  let end = linePrefix.length - length;
+  while (end > 0 && isSpaceCharacter(linePrefix[end - 1])) {
+    end--;
+  }
+  while (end > 0 && MARKER_MODIFIERS.has(linePrefix[end - 1] as string)) {
+    end--;
+  }
+  const head = classifyHead(linePrefix.slice(0, end));
+  return head !== null && head.markerLength > 0;
+}
+
+/**
  * How many characters this particular body should replace, or null when it does not belong here.
  *
  * The eight upstream helpers that carry no marker of their own (image_alt, strip_tags, ...) go

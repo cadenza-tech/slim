@@ -3,20 +3,21 @@
 // The hard part is not the literal, it is deciding that `render` is a Ruby call at all. A Slim line
 // that merely contains the word (`p Please render 'x'`), a Ruby assignment inside a ruby: filter
 // (`x = render 'y'`) and a method on a receiver (`x.render 'y'`) all have to be rejected, and that is
-// exactly the question computeCompletionWord already answers - so it is reused rather than reproduced.
+// exactly the question completionWord's isScriptPosition already answers - so it is reused rather than
+// reproduced.
 //
 // Everything here scans linearly. provideCompletionItems runs synchronously on every keystroke and a
 // Slim line can hold an inline data URI, which is the constraint src/pure/completionWord.ts documents.
 
 import { findLiteralEnd, isClosingBracket, isOpeningBracket, isSpaceCharacter, isWordCharacter, skipSpaces } from './characters';
-import { computeCompletionWord } from './completionWord';
+import { isScriptPosition } from './completionWord';
 
 /**
  * How many `render` tokens left of the cursor are examined.
  *
  * A Slim line has a single script marker, so in real code the first candidate that clears the cheap
  * guards is the only one that can pass the marker test as well. The limit exists for input like
- * `'render '.repeat(20000)`, where every candidate clears the guards and computeCompletionWord would
+ * `'render '.repeat(20000)`, where every candidate clears the guards and isScriptPosition would
  * slice the whole prefix each time, turning the scan quadratic.
  */
 const MAX_RENDER_CANDIDATES = 8;
@@ -184,9 +185,8 @@ export function partialReferenceAt(line: string, character: number): PartialRefe
     if (isIdentifierNeighbour(line[tokenStart - 1]) || !opensArguments(line[tokenEnd])) {
       continue;
     }
-    const word = computeCompletionWord(line.slice(0, tokenEnd));
     // No marker means plain text or a filter body, where `render 'x'` is rendered literally.
-    if (word === null || word.markerLength === 0) {
+    if (!isScriptPosition(line.slice(0, tokenEnd))) {
       continue;
     }
     const reference = referenceCovering(line, tokenEnd, character);
