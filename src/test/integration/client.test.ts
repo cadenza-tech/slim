@@ -124,6 +124,29 @@ suite('client failure logging Test Suite', () => {
       `the EACCES detail must reach the channel, got ${JSON.stringify(errors)}`
     );
   });
+
+  // bin/slim-lint builds its logger on $stdout, so the sentence explaining an exit 64, 70 or 78
+  // arrives there and stderr stays empty: logging stderr alone leaves "exit 78" in the channel and
+  // the YAML error that caused it nowhere.
+  test('should log what slim-lint wrote to stdout when it exits with an error', async () => {
+    const details: string[] = [];
+    logger.error = () => undefined;
+    logger.detail = (label: string, text: string) => {
+      details.push(`${label}: ${text}`);
+    };
+    const explanation = "Unable to load configuration from '.slim-lint.yml': did not find expected ',' or ']'";
+    const runner = recordingRunner([{ ok: true, code: 78, stdout: explanation, stderr: '', durationMs: 10 }]);
+    const client = clientFor(runner);
+    const document = await openView('offenses.slim');
+
+    const result = await client.run(document, config());
+
+    assert.strictEqual(result.ok, false);
+    assert.ok(
+      details.some((line) => line.includes(explanation)),
+      `slim-lint's own explanation must reach the channel, got ${JSON.stringify(details)}`
+    );
+  });
 });
 
 // slim-lint is superlinear in document size: a ~19 KB file already takes longer than the default
