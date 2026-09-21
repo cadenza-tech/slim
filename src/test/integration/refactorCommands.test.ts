@@ -109,6 +109,17 @@ suite('selection refactoring integration Test Suite', () => {
     assert.strictEqual(editor.document.getText(), before);
   });
 
+  // Slim reads a tab as running to the next multiple of four columns, so a file may mix the two - and
+  // then no prefix added to every line keeps their relative depths: `\timg` under `  section` turns
+  // into a sibling once both gain two spaces. Declining is the only answer that cannot change the page.
+  test('should leave a selection that mixes tabs and spaces alone', async () => {
+    const editor = await openScratch('mixed', 'div\n  section\n\timg src="a"\n');
+    const before = editor.document.getText();
+    editor.selection = new vscode.Selection(1, 0, 2, 0);
+    await wrapInConditional(editor);
+    assert.strictEqual(editor.document.getText(), before);
+  });
+
   // createFile has no contents option at 1.57, so creation and the render replacement have to be one
   // WorkspaceEdit to stay a single undo step. This is the test that proves the pair actually applies.
   test('should extract the selection into a new partial and leave a render call', async () => {

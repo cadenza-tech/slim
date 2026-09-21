@@ -109,8 +109,8 @@ export function linesOf(range: LineRange, document: DocumentSnapshot): string[] 
  * The leading whitespace every non-blank line shares, as a string rather than a width.
  *
  * Taken verbatim the way disableComment takes it, so tabs stay tabs. Mixed tabs and spaces share no
- * prefix and yield '', which makes the caller do nothing rather than something wrong - and Slim
- * rejects mixed indentation itself, so there is no correct answer to reach for.
+ * prefix and yield '' - which is not an answer a caller can act on, so the commands ask
+ * mixesIndentation first and decline.
  */
 export function commonIndent(lines: readonly string[]): string {
   let common: string | null = null;
@@ -122,6 +122,28 @@ export function commonIndent(lines: readonly string[]): string {
     common = common === null ? indent : sharedPrefix(common, indent);
   }
   return common ?? '';
+}
+
+/**
+ * Whether the lines indent with both tabs and spaces.
+ *
+ * Slim accepts that - a tab runs to the next multiple of four columns - but no prefix added to or
+ * removed from every line keeps such lines at the same relative depth: `\timg` under `  section`
+ * becomes its sibling once both gain two spaces. There is no re-indentation to get right, so the
+ * commands decline rather than change what the page renders.
+ */
+export function mixesIndentation(lines: readonly string[]): boolean {
+  let sawSpace = false;
+  let sawTab = false;
+  for (const line of lines) {
+    if (isBlankText(line)) {
+      continue;
+    }
+    const indent = line.slice(0, skipSpaces(line, 0));
+    sawSpace = sawSpace || indent.includes(' ');
+    sawTab = sawTab || indent.includes('\t');
+  }
+  return sawSpace && sawTab;
 }
 
 /** Blank lines stay empty: indenting one would be trailing whitespace, which slim-lint reports. */

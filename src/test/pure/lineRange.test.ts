@@ -1,5 +1,14 @@
 import * as assert from 'node:assert';
-import { commonIndent, dedentLines, indentLines, indentUnit, linesOf, normalizeSelection, type SelectionInput } from '../../pure/lineRange';
+import {
+  commonIndent,
+  dedentLines,
+  indentLines,
+  indentUnit,
+  linesOf,
+  mixesIndentation,
+  normalizeSelection,
+  type SelectionInput
+} from '../../pure/lineRange';
 import type { DocumentSnapshot } from '../../pure/textModel';
 import { snapshotOfLines } from '../support/snapshot';
 
@@ -189,6 +198,15 @@ suite('pure/lineRange Test Suite', () => {
 
     test('should ignore blank lines', () => {
       assert.strictEqual(commonIndent(['  p a', '', '  p b']), '  ');
+    });
+
+    // Only leading whitespace counts, and a blank line indents nothing.
+    test('should say when the lines mix tabs and spaces for indentation', () => {
+      assert.strictEqual(mixesIndentation(['  a', '\tb']), true);
+      assert.strictEqual(mixesIndentation([' \ta']), true);
+      assert.strictEqual(mixesIndentation(['  a', '    b', '', ' \t ']), false);
+      assert.strictEqual(mixesIndentation(['\ta', '\t\tb', 'c \t d']), false);
+      assert.strictEqual(mixesIndentation([]), false);
     });
 
     // Nothing is safe to assume when tabs and spaces are mixed, so nothing is claimed.
