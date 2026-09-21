@@ -14,6 +14,12 @@ const BRANCH_LINE = /^[ \t]*-\s*(?:else|elsif|when|in|rescue|ensure)\b/;
 /** The branches that may sit a level under their opener, and the only opener that lets them. */
 const NESTABLE_BRANCH = /^[ \t]*-\s*(?:when|in|else)\b/;
 const CASE_OPENER = /^[ \t]*-\s*case\b/;
+/**
+ * A `/` code comment, which Slim drops while parsing: one between a branch and the line it answers
+ * to changes nothing, and the disable quick fix writes exactly that. Not `/!` or `/[if]`, which are
+ * rendered - Slim refuses an `- else` that follows one.
+ */
+const CODE_COMMENT = /^[ \t]*\/(?![![])/;
 
 /**
  * The line that opens the statement `lineIndex` is a branch of, or `lineIndex` itself when it is not
@@ -44,11 +50,29 @@ function findBlockStart(lineIndex: number, document: DocumentSnapshot): number {
     if (columns < indent) {
       return NESTABLE_BRANCH.test(target) && CASE_OPENER.test(text) ? index : lineIndex;
     }
-    if (!BRANCH_LINE.test(text)) {
+    if (!BRANCH_LINE.test(text) && !CODE_COMMENT.test(text)) {
       return index;
     }
   }
   return lineIndex;
+}
+
+/** Whether the next line of Slim at `indent` after `lineIndex` - code comments aside - is a branch. */
+function branchFollows(lineIndex: number, indent: number, document: DocumentSnapshot): boolean {
+  for (let index = lineIndex + 1; index < document.lineCount; index++) {
+    const text = document.lineAt(index).text;
+    if (isBlankText(text)) {
+      continue;
+    }
+    const columns = indentColumns(text);
+    if (columns > indent) {
+      continue;
+    }
+    if (columns < indent || !CODE_COMMENT.test(text)) {
+      return columns === indent && BRANCH_LINE.test(text);
+    }
+  }
+  return false;
 }
 
 const MIN_TAB_SIZE = 1;
@@ -141,7 +165,13 @@ export function normalizeSelection(selection: SelectionInput, document: Document
       continue;
     }
     const indent = indentColumns(line.text);
-    if (indent < shallowestIndent || (indent === shallowestIndent && !BRANCH_LINE.test(line.text))) {
+    if (indent < shallowestIndent) {
+      break;
+    }
+    // A code comment at the statement's own indent only belongs to it when a branch comes after:
+    // on its own it is about whatever follows, and is left where it is.
+    const carriesOn = BRANCH_LINE.test(line.text) || (CODE_COMMENT.test(line.text) && branchFollows(index, indent, document));
+    if (indent === shallowestIndent && !carriesOn) {
       break;
     }
     blockEnd = index;

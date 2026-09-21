@@ -172,6 +172,39 @@ suite('pure/lineRange Test Suite', () => {
       assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 0, endLine: 4 });
     });
 
+    // Slim drops a code comment while parsing, so one between a branch and the line it answers to
+    // changes nothing - and the disable quick fix writes exactly that shape, around an if-body. It
+    // is neither the opener nor the end of the statement. `/!` is rendered, and Slim refuses an
+    // `- else` after one, so only the code comment is looked past.
+    test('should look past a code comment for the opener and for the next branch', () => {
+      const document = snapshotOfLines([
+        '- if a',
+        '  / slim-lint:disable LineLength',
+        '  p x',
+        '/ slim-lint:enable LineLength',
+        '  swallowed by the comment',
+        '- else',
+        '  p y',
+        'footer'
+      ]);
+      assert.deepStrictEqual(normalizeSelection(caret(5), document), { startLine: 0, endLine: 6 });
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 6 });
+    });
+
+    test('should not take a code comment that no branch follows', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '/ about the footer', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 1 });
+      const trailing = snapshotOfLines(['div', '  - if a', '    p x', '  / the last word', '', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), trailing), { startLine: 1, endLine: 2 });
+      const last = snapshotOfLines(['- if a', '  p x', '/ nothing after this']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), last), { startLine: 0, endLine: 1 });
+    });
+
+    test('should not look past an html comment, which Slim does not allow there', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '/! rendered', '- else', '  p y']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 1 });
+    });
+
     test('should look past blank lines for the opener', () => {
       const document = snapshotOfLines(['- if a', '  p x', '', '- else', '  p y']);
       assert.deepStrictEqual(normalizeSelection(caret(3), document), { startLine: 0, endLine: 4 });
