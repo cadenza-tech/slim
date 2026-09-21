@@ -304,6 +304,39 @@ export function consumesDeeperLines(text: string): boolean {
   return classify(text) !== 'children';
 }
 
+/**
+ * Whether some line above `lineIndex` takes it as content, judged from indentation alone.
+ *
+ * The cheap reading, for a caller that runs on a keystroke and for whom a wrong answer costs a
+ * suggestion: it climbs only the lines indented shallower, so a statement whose later lines sit
+ * at the asked line's own indent or shallower escapes it. owningLine is the one to ask when the
+ * answer decides what is written into the document.
+ *
+ * Each of those lines is read as the statement it opens, not on its own. The head of a Rails form -
+ * `= form_with model: @user,` - is unfinished when read alone, which is not the same thing as
+ * taking its children for content: read to its end it opens an ordinary block, and only the lines
+ * that finish it are its own.
+ */
+export function hasConsumingAncestor(lineIndex: number, document: DocumentSnapshot): boolean {
+  let indent = indentColumns(document.lineAt(lineIndex).text);
+  for (let index = lineIndex - 1; index >= 0 && indent > 0; index--) {
+    const text = document.lineAt(index).text;
+    if (isBlankText(text)) {
+      continue;
+    }
+    const columns = indentColumns(text);
+    if (columns >= indent) {
+      continue;
+    }
+    const statement = statementAt(index, document);
+    if (lineIndex <= statement.end || statement.consumesDeeper) {
+      return true;
+    }
+    indent = columns;
+  }
+  return false;
+}
+
 /** The last non-blank line after `from` indented deeper than `head`, or `from` when there is none. */
 function lastDeeperLine(head: number, from: number, document: DocumentSnapshot): number {
   const indent = indentColumns(document.lineAt(head).text);

@@ -1,6 +1,7 @@
 import * as assert from 'node:assert';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { CONTROL_SNIPPETS } from '../../pure/controlSnippets';
 import { MODERN_RAILS_SNIPPETS, RAILS_SNIPPETS, shouldOfferRailsSnippets } from '../../pure/railsSnippets';
 import { UPSTREAM_RAILS_SNIPPETS } from '../../pure/railsSnippetsUpstream';
 
@@ -53,8 +54,11 @@ function contributedPrefixes(): string[] {
   return Object.values(parsed).flatMap((entry) => [entry.prefix].flat());
 }
 
+/** Everything the completion provider supplies. The checks on a body's shape hold for all of it. */
+const PROVIDED_SNIPPETS = [...RAILS_SNIPPETS, ...CONTROL_SNIPPETS];
+
 suite('pure/railsSnippets Test Suite', () => {
-  test('should carry every upstream helper that does not clash with a contributed one', () => {
+  test('should carry every upstream helper that does not clash with a Slim control snippet', () => {
     assert.strictEqual(UPSTREAM_RAILS_SNIPPETS.length, EXPECTED_UPSTREAM);
     assert.strictEqual(MODERN_RAILS_SNIPPETS.length, EXPECTED_MODERN);
     assert.strictEqual(RAILS_SNIPPETS.length, EXPECTED_UPSTREAM + EXPECTED_MODERN);
@@ -71,13 +75,13 @@ suite('pure/railsSnippets Test Suite', () => {
   // Both sets are offered at once, so an overlap would show the same word twice with two bodies.
   test('should not collide with the contributed Slim snippets', () => {
     const contributed = new Set(contributedPrefixes());
-    for (const snippet of RAILS_SNIPPETS) {
+    for (const snippet of PROVIDED_SNIPPETS) {
       assert.ok(!contributed.has(snippet.prefix), `${snippet.prefix} is already in slim.code-snippets`);
     }
   });
 
   test('should have a non-empty prefix, body and detail', () => {
-    for (const snippet of RAILS_SNIPPETS) {
+    for (const snippet of PROVIDED_SNIPPETS) {
       assert.ok(snippet.prefix.length > 0, 'empty prefix');
       assert.ok(snippet.body.length > 0, `empty body for ${snippet.prefix}`);
       assert.ok(snippet.detail.length > 0, `empty detail for ${snippet.prefix}`);
@@ -86,7 +90,7 @@ suite('pure/railsSnippets Test Suite', () => {
 
   // A malformed body inserts rubbish with no error anywhere, so it is checked mechanically.
   test('should use well-formed placeholder syntax', () => {
-    for (const snippet of RAILS_SNIPPETS) {
+    for (const snippet of PROVIDED_SNIPPETS) {
       const problem = placeholderProblem(snippet.body);
       assert.strictEqual(problem, null, `${snippet.prefix} has ${problem}: ${snippet.body}`);
     }
@@ -94,7 +98,7 @@ suite('pure/railsSnippets Test Suite', () => {
 
   // Slim is indentation-sensitive and rejects tabs outright.
   test('should never contain a tab', () => {
-    for (const snippet of RAILS_SNIPPETS) {
+    for (const snippet of PROVIDED_SNIPPETS) {
       assert.ok(!snippet.body.includes('\t'), `${snippet.prefix} contains a tab`);
     }
   });

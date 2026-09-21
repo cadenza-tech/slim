@@ -85,10 +85,10 @@ THE SOFTWARE.
 ## Rails snippets
 
 `src/pure/railsSnippetsUpstream.ts` is derived from **haml-vscode** by Karuna Murti, and the seven
-structural snippet bodies retained in `snippets/slim.code-snippets` (`if`, `else`, `elsif`,
-`unless`, `each`, `yield`, `content_for`) originate there as well. `railsSnippetsUpstream.ts` is
-not shipped as a file: esbuild bundles it into `dist/extension.js`, which is where the derived work
-lives in the published extension.
+structural snippet bodies retained in `src/pure/controlSnippets.ts` (`if`, `else`, `elsif`,
+`unless`, `each`, `yield`, `content_for`) originate there as well. Neither file is shipped as one:
+esbuild bundles both into `dist/extension.js`, which is where the derived work lives in the
+published extension.
 
 - Upstream: https://github.com/karuna/haml-vscode
 - Vendored commit: `504875f60bcd474f17762b2daf97680476135f79` (master, 2022-07-03)
@@ -106,10 +106,12 @@ lives in the published extension.
   which VS Code's snippet parser rejects outright, so that upstream inserts their literal text; and
   `video_tag` had `autobuf.fer:`, a stray dot in the `autobuffer:` keyword that makes the inserted
   Ruby a syntax error. The seven structural snippets above are
-  excluded so the two sets never offer the same prefix twice. They are offered through a
+  excluded so the two sets never offer the same prefix twice. The Rails set is offered through a
   CompletionItemProvider rather than `contributes.snippets`, because that contribution point takes
   only `language` and `path` and so cannot be turned off by a setting; `slim.snippets.rails`
-  controls them, and defaults to detecting whether the workspace is a Rails project.
+  controls it, and defaults to detecting whether the workspace is a Rails project. The structural
+  snippets go through the same provider, ungated, because only a provider can replace the `-` or
+  `=` a body opens with when the user has already typed it.
 - The 18 further helpers in `src/pure/railsSnippets.ts` (`form_with`, `turbo_frame_tag`, `dom_id`,
   ...) and `language-configuration.json` are original to this repository and are not covered by
   this notice.

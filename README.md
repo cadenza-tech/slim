@@ -97,14 +97,25 @@ filesystem — a virtual workspace such as GitHub Repositories, a diff from the 
 untitled buffer. It is also off for a file opened on its own without a workspace folder, since there
 is then no directory to search upwards from. Set `"on"` in those cases.
 
-Two behaviours differ from the built-in Slim snippets, because a contributed snippet file cannot be
-switched off by a setting and these are therefore supplied by a completion provider instead:
+Two behaviours differ from the other built-in Slim snippets, because a contributed snippet file
+cannot be switched off by a setting and these are therefore supplied by a completion provider
+instead:
 
 - they do not appear in the **Insert Snippet** command
 - they do not expand with `editor.tabCompletion`
 
 They are suggested as you type like any other snippet, and honour
 `editor.snippetSuggestions: "none"`.
+
+The Slim control-flow snippets (`if`, `ifelse`, `unless`, `each`, `case`, `yield`, ...) come from the
+same provider and share those two differences, for a different reason: a contributed snippet replaces
+only the word you typed, so after a marker it would leave `- - if condition` behind. Supplied this way
+they work whether you type `if` or `- if`, whatever `slim.snippets.rails` says, and stay out of filter
+and text blocks, where `if` is JavaScript or prose.
+
+They are matched by the start of the word, so that they never stand in the way of the word-based
+suggestions for a tag you are typing: start `content_for` with `c`, not with `cf`. For the same reason
+triggering suggestions on an empty line lists none of them — type the first letter.
 
 ## Partials
 

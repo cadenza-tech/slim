@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { consumesDeeperLines, owningLine, statementEnd } from '../../pure/lineOwner';
+import { consumesDeeperLines, hasConsumingAncestor, owningLine, statementEnd } from '../../pure/lineOwner';
 import { snapshotOfLines } from '../support/snapshot';
 
 suite('pure/lineOwner Test Suite', () => {
@@ -156,6 +156,48 @@ suite('pure/lineOwner Test Suite', () => {
 
     test('should skip blank lines on the way up', () => {
       assert.strictEqual(owningLine(3, snapshotOfLines(['p', '  | short', '', '    continuation'])), 1);
+    });
+  });
+
+  // The cheap upward reading the completion provider asks on a keystroke, where a wrong answer costs
+  // a suggestion and not a page: it is owningLine's question without the walk from the top.
+  suite('hasConsumingAncestor', () => {
+    test("should say a line inside a filter or a text block is somebody else's", () => {
+      assert.strictEqual(hasConsumingAncestor(1, snapshotOfLines(['javascript:', '  if'])), true);
+      assert.strictEqual(hasConsumingAncestor(2, snapshotOfLines(['ruby:', '  x = 1', '    if'])), true);
+      assert.strictEqual(hasConsumingAncestor(2, snapshotOfLines(['p', '  | text', '    if'])), true);
+      assert.strictEqual(hasConsumingAncestor(1, snapshotOfLines(['p hello', '  if'])), true);
+      assert.strictEqual(hasConsumingAncestor(3, snapshotOfLines(['div', '  javascript:', '', '    if'])), true);
+    });
+
+    test('should say a line under parents that parse their children is its own', () => {
+      assert.strictEqual(hasConsumingAncestor(0, snapshotOfLines(['if'])), false);
+      assert.strictEqual(hasConsumingAncestor(2, snapshotOfLines(['div', '  - if a', '    if'])), false);
+      assert.strictEqual(hasConsumingAncestor(2, snapshotOfLines(['javascript:', '  a();', 'if'])), false);
+      assert.strictEqual(hasConsumingAncestor(2, snapshotOfLines(['ul', '  li: a href="/"', '    if'])), false);
+    });
+
+    test('should measure the way up in columns', () => {
+      assert.strictEqual(hasConsumingAncestor(2, snapshotOfLines(['div', '    | text', '\t\tif'])), true);
+    });
+
+    // A head that is not finished on its own line - the usual shape of a Rails form - reads as
+    // unfinished when asked alone, and that is not the same thing as taking its children for
+    // content: once the statement is read to its end, what it opens is an ordinary block.
+    test('should leave the body of a block whose head spans several lines to itself', () => {
+      const form = ['= form_with model: @user,', '            url: users_path do |f|', '  .field', '    - if'];
+      assert.strictEqual(hasConsumingAncestor(2, snapshotOfLines(form)), false);
+      assert.strictEqual(hasConsumingAncestor(3, snapshotOfLines(form)), false);
+      assert.strictEqual(hasConsumingAncestor(3, snapshotOfLines(['ul', '  = link_to root_path,', "    class: 'x' do", '    if'])), false);
+      assert.strictEqual(hasConsumingAncestor(2, snapshotOfLines(['- items.each_with_index do |item,', '    index|', '  if'])), false);
+      assert.strictEqual(hasConsumingAncestor(2, snapshotOfLines(['- if a && \\', '    b', '  if'])), false);
+      assert.strictEqual(hasConsumingAncestor(2, snapshotOfLines(["a(href='/'", "  class='x')", '  if'])), false);
+    });
+
+    test('should still say so of a line that is itself the rest of such a head', () => {
+      assert.strictEqual(hasConsumingAncestor(1, snapshotOfLines(["= link_to 'x',", '  if'])), true);
+      assert.strictEqual(hasConsumingAncestor(1, snapshotOfLines(["a(href='/'", '  if'])), true);
+      assert.strictEqual(hasConsumingAncestor(2, snapshotOfLines(["a(href='/'", "  class='x') Home", '  if'])), true);
     });
   });
 
