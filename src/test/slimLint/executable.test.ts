@@ -180,6 +180,24 @@ suite('slimLint/executable Test Suite', () => {
       assert.strictEqual(resolveOnPath('slim-lint', d)?.toLowerCase(), 'c:\\ruby\\bin\\slim-lint.bat');
     });
 
+    // cmd.exe tries a name that already carries a PATHEXT extension as it stands, before appending
+    // any. Only appending made `"slim.slimLint.executablePath": "slim-lint.bat"` probe
+    // slim-lint.bat.EXE, slim-lint.bat.BAT, ... and report an installed executable as missing.
+    test('should find a win32 command that already carries its extension', () => {
+      const d = deps({ 'C:\\Ruby\\bin\\slim-lint.bat': '' }, { platform: 'win32', env: { PATH: 'C:\\Ruby\\bin', PATHEXT: '.EXE;.BAT;.CMD' } });
+      assert.strictEqual(resolveOnPath('slim-lint.bat', d), 'C:\\Ruby\\bin\\slim-lint.bat');
+    });
+
+    // RubyInstaller ships an extensionless `slim-lint` Ruby script beside slim-lint.bat, and
+    // CreateProcess cannot start it: a name with no PATHEXT extension must never match as it stands.
+    test('should not match an extensionless win32 file as it stands', () => {
+      const d = deps(
+        { 'C:\\Ruby\\bin\\slim-lint': '', 'C:\\Ruby\\bin\\slim-lint.bat': '' },
+        { platform: 'win32', env: { PATH: 'C:\\Ruby\\bin', PATHEXT: '.EXE;.BAT;.CMD' } }
+      );
+      assert.strictEqual(resolveOnPath('slim-lint', d)?.toLowerCase(), 'c:\\ruby\\bin\\slim-lint.bat');
+    });
+
     test('should verify an explicit path instead of scanning PATH', () => {
       assert.strictEqual(resolveOnPath('/opt/slim-lint', deps({ '/opt/slim-lint': '' })), '/opt/slim-lint');
       assert.strictEqual(resolveOnPath('/opt/slim-lint', deps({})), null);
