@@ -17,9 +17,18 @@ function toSeverity(severity: 'error' | 'warning'): vscode.DiagnosticSeverity {
 /**
  * slim-lint's own top-level `exclude:` never applies to a --stdin-file-path run: the piped document
  * bypasses the file finder that would apply it. This setting is the honest replacement.
+ *
+ * A string pattern in a DocumentFilter is matched against the absolute path, so on its own only a
+ * `**`-led glob ever matches - and the globs a user brings over from `exclude:` are relative to the
+ * project. Each pattern is therefore tried against the workspace folder as well.
  */
 function isExcluded(document: vscode.TextDocument, patterns: readonly string[]): boolean {
-  return patterns.some((pattern) => vscode.languages.match({ pattern }, document) > 0);
+  const folder = vscode.workspace.getWorkspaceFolder(document.uri);
+  return patterns.some(
+    (pattern) =>
+      vscode.languages.match({ pattern }, document) > 0 ||
+      (folder !== undefined && vscode.languages.match({ pattern: new vscode.RelativePattern(folder, pattern) }, document) > 0)
+  );
 }
 
 export class DiagnosticsController implements vscode.Disposable {

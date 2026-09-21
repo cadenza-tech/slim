@@ -206,7 +206,7 @@ Linting a Slim file runs Ruby code from your workspace: `bundle exec` evaluates 
 
 ## Known Limitations
 
-- **`exclude:` in `.slim-lint.yml` is not applied.** Linting from the editor pipes the buffer through `--stdin-file-path`, which bypasses slim-lint's file finder — the stage that applies the top-level `exclude:` globs. Use `slim.lint.exclude` instead. Per-linter `include:` / `exclude:` are unaffected and still work.
+- **`exclude:` in `.slim-lint.yml` is not applied.** Linting from the editor pipes the buffer through `--stdin-file-path`, which bypasses slim-lint's file finder — the stage that applies the top-level `exclude:` globs. Use `slim.lint.exclude` instead: its globs are matched against the path relative to the workspace folder, so an `exclude:` entry written relative to the project root carries over as it is. Per-linter `include:` / `exclude:` are unaffected and still work.
 - **Diagnostics cover a whole line.** slim-lint reports a line number and no column.
 - **A file that times out is left alone until something changes.** Every run boots Ruby and RuboCop afresh, so once a run has exceeded `slim.slimLint.timeoutMs` on a document, saving it again would only spend the same time to be killed again. Automatic runs for that document are therefore paused until it gets smaller, `slim.slimLint.timeoutMs` is raised, or you run `Slim: Lint File` or `Slim: Restart Linter`. The output channel records it when it happens.
 - **This extension never writes to your configuration files.**

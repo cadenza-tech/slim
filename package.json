@@ -203,7 +203,7 @@
           },
           "default": [],
           "scope": "resource",
-          "markdownDescription": "Glob patterns of files to skip. slim-lint's own top-level `exclude:` is not applied when linting from stdin, so use this instead."
+          "markdownDescription": "Glob patterns of files to skip, matched against the path relative to the workspace folder (`vendor/**`) or against the absolute path (`**/vendor/**`). slim-lint's own top-level `exclude:` is not applied when linting from stdin, so use this instead."
         },
         "slim.slimLint.executablePath": {
           "type": [
