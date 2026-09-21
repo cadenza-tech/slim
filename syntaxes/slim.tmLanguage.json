@@ -481,7 +481,7 @@
     },
     {
       "begin": "^(\\s*)(\\||')\\s*",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "comment": "Verbatim text (can include HTML tags and copied lines)",
       "patterns": [
         {

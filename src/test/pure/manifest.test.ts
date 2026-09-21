@@ -201,18 +201,40 @@ suite('package.json manifest Test Suite', () => {
       }
     });
 
-    // A filter's `end` is only tried while the filter is on top of the rule stack. A construct the
-    // embedded grammar leaves open - a `/*`, a template literal - sits above it, so the filter never
-    // ends and the rest of the file is coloured as that construct. `while` is asked of every line
-    // whatever is open, and pops it all.
-    test('should bound every filter by while rather than end', () => {
-      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as { patterns: { begin?: string; end?: string; while?: string }[] };
-      const filters = grammar.patterns.filter((rule) => rule.begin !== undefined && /^\^\(\\s\*\)\(\w+\):\$$/.test(rule.begin));
-      assert.strictEqual(filters.length, 9, 'the pattern no longer recognises the filter rules');
-      for (const rule of filters) {
+    /**
+     * An `end` is only tried while its own rule is on top of the rule stack. A construct another
+     * grammar leaves open - a `/*`, a template literal, a `#{` still being typed - sits above it, so
+     * the region never ends and the rest of the file is coloured as that construct. `while` is asked
+     * of every line whatever is open, and pops it all.
+     *
+     * Which is why this asks about the rules that hand their body to other patterns. The `/` and
+     * `/!` comments keep an `end`: they hold no patterns, and the one thing that reaches into them
+     * anyway - the interpolation injection - is excluded from them by its selector, which the next
+     * test pins.
+     */
+    test('should bound an indented body by while wherever something can be left open in it', () => {
+      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as {
+        patterns: { begin?: string; end?: string; while?: string; patterns?: unknown[] }[];
+      };
+      const indented = grammar.patterns.filter((rule) => rule.begin?.startsWith('^(\\s*)') === true && rule.patterns !== undefined);
+      // The nine filters and the text block. A rule written with another prefix would be missed, so
+      // the count says which rules the assertions below were actually made about.
+      assert.strictEqual(indented.length, 10, 'the grammar has changed shape');
+      for (const rule of indented) {
         assert.strictEqual(rule.end, undefined, `the rule beginning ${rule.begin} ends on a pattern`);
         assert.strictEqual(rule.while, '^(?=\\1\\s|\\s*$)', `the rule beginning ${rule.begin}`);
       }
+    });
+
+    // An injection applies at every level of the scope stack, so it reaches inside a rule that has
+    // no patterns of its own. Without `-comment` an unterminated `#{` under `/` or `/!` opens a
+    // Ruby region that outlives the comment and colours the rest of the file.
+    test('should keep the interpolation injection out of comments', () => {
+      const injection = readJson('syntaxes', 'slim-interpolation.injection.json') as { injectionSelector: string };
+      assert.ok(
+        injection.injectionSelector.split(/\s+/).includes('-comment'),
+        `the selector ${injection.injectionSelector} no longer excludes comments, which are bounded by end`
+      );
     });
   });
 

@@ -33,4 +33,6 @@ finds its end. It stands for whatever a real grammar leaves open across lines - 
 template literal, a `{`. The other fixtures pin where a region ends when nothing inside it is open;
 this one pins that it ends *anyway*, which is the whole difference between `while` and `end`: an
 open construct sits above the filter on the rule stack, and a filter bounded by `end` is never asked
-again. `filter-leak.slim` is the one fixture that holds the word.
+again. `filter-leak.slim` and `text-block-leak.slim` are the only fixtures that hold the word. The
+text block leaves something open a second way, needing no stub at all: an unterminated `#{` opens a
+region of the interpolation injection, which is this repository's own grammar.

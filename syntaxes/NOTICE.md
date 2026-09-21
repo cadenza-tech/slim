@@ -31,19 +31,27 @@
   the other filters is how the body is told from what follows - by the header's own leading
   whitespace plus one more character - so a body indented with tabs under a header indented with
   spaces is not recognised as one.
-- Every filter is written as `begin`/`while` (`^(?=\1\s|\s*$)`) where upstream has `begin`/`end`
-  (`^(?!(\1\s)|\s*$)`), for the reason given under `erb:` above. The two tell a body line from what
-  follows it in the same way, and against the grammars VS Code ships every well-formed filter
-  tokenizes the same either way - checked over 104 documents, eight filters in thirteen shapes.
+- Every rule that takes an indented body and hands it to other patterns - the nine filters and the
+  `|`/`'` text block - is written as `begin`/`while` (`^(?=\1\s|\s*$)`) where upstream has
+  `begin`/`end` (`^(?!(\1\s)|\s*$)`), for the reason given under `erb:` above. The two tell a body
+  line from what follows it in the same way, and against the grammars VS Code ships every
+  well-formed body tokenizes the same either way - checked over 104 filter documents (the eight
+  filters that embed a grammar, in thirteen shapes each; `erb:` has its own paragraph above) and
+  192 text blocks.
   (Not the same *rule*, though: a zero-width `while` anchors `\G` at column 0 of every body line,
-  where the `end` form leaves it unset. No `\G` rule in those grammars can reach the start of an
-  indented line, but a third-party one that could would be a real difference.) What `end` could not
-  do is end the region while the embedded grammar has something open - a `/*`, a template literal,
-  a heredoc, or simply the `{` of a CSS rule still being typed - because a filter's `end` is only
-  tried while the filter is on top of the rule stack; everything below it was then coloured as that
-  construct to the end of the file. `while` is asked of every line whatever is open, and pops it
-  all - which also takes back the line after a `markdown:` body, whose own paragraph rule used to
-  claim the next, more shallowly indented Slim line as a continuation.
+  where the `end` form leaves it unset. No `\G` rule in the grammars those bodies are handed to can
+  reach the start of an indented line - `text.html.basic` comes closest, where the `<script>` and
+  `<style>` wrappers use one, and it only ever stands mid-line - but a third-party grammar that
+  could would be a real difference.) What `end` could not do is end the region while the embedded
+  grammar has something open - a `/*`, a template literal, a heredoc, the `{` of a CSS rule still
+  being typed, or in a text block an HTML tag or the `#{` of an interpolation - because an `end` is
+  only tried while its own rule is on top of the rule stack; everything below was then coloured as
+  that construct to the end of the file. `while` is asked of every line whatever is open, and pops
+  it all - which also takes back the line after a `markdown:` body, whose own paragraph rule used to
+  claim the next, more shallowly indented Slim line as a continuation. The `/` and `/!` comments
+  keep upstream's `end` because nothing reaches into them: they hold no patterns, and the
+  interpolation injection below excludes `comment`. Drop that exclusion and they leak in the same
+  way, which is why `src/test/pure/manifest.test.ts` pins it.
 - The `sass:` filter carries a second pattern that can never match, `(?!)`, next to its
   `source.sass` include. `source.sass` comes from third-party extensions only, and without the
   extra pattern the rule is dropped in stock VS Code the same way: `sass` became a tag name and the
@@ -74,6 +82,10 @@ from upstream that a rewrite might improve but vendoring deliberately keeps:
   head, because a begin/end pair cannot carry the wrapper state across lines in this grammar.
 - A splat written as `*variable` (rather than `*{...}`) is not scoped; upstream's splat rule only
   matches the brace form.
+- Upstream carries a second `|`/`'` rule, `^\s*(?=\||')` with `end: $`, further down the pattern
+  list. It is unreachable - the text block above it matches at the same position and wins - which is
+  why only one rule is converted to `while` above, and why the structural test counts ten rules
+  rather than eleven.
 
 ## Interpolation injection
 
