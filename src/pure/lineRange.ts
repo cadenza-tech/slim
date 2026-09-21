@@ -11,6 +11,45 @@ import type { DocumentSnapshot } from './textModel';
  * Runs once per command, not per keystroke, which is what makes a regex affordable here.
  */
 const BRANCH_LINE = /^[ \t]*-\s*(?:else|elsif|when|in|rescue|ensure)\b/;
+/** The branches that may sit a level under their opener, and the only opener that lets them. */
+const NESTABLE_BRANCH = /^[ \t]*-\s*(?:when|in|else)\b/;
+const CASE_OPENER = /^[ \t]*-\s*case\b/;
+
+/**
+ * The line that opens the statement `lineIndex` is a branch of, or `lineIndex` itself when it is not
+ * a branch.
+ *
+ * The opener is the nearest line above at the same indent that is not a branch itself. A `case` is
+ * the exception: Slim takes `- when` one level under `- case` as well as beside it, and once it has,
+ * the `- else` of that case sits at the nested level too - so for those two a shallower `- case` is
+ * the opener. Any other shallower line means the document is not what it looks like, and nothing
+ * is moved. An assigned `- y = case x` only compiles with its branches beside it, which the
+ * same-indent rule already covers.
+ */
+function findBlockStart(lineIndex: number, document: DocumentSnapshot): number {
+  const target = document.lineAt(lineIndex).text;
+  if (!BRANCH_LINE.test(target)) {
+    return lineIndex;
+  }
+  const indent = indentColumns(target);
+  for (let index = lineIndex - 1; index >= 0; index--) {
+    const text = document.lineAt(index).text;
+    if (isBlankText(text)) {
+      continue;
+    }
+    const columns = indentColumns(text);
+    if (columns > indent) {
+      continue;
+    }
+    if (columns < indent) {
+      return NESTABLE_BRANCH.test(target) && CASE_OPENER.test(text) ? index : lineIndex;
+    }
+    if (!BRANCH_LINE.test(text)) {
+      return index;
+    }
+  }
+  return lineIndex;
+}
 
 const MIN_TAB_SIZE = 1;
 const MAX_TAB_SIZE = 8;
@@ -73,12 +112,25 @@ export function normalizeSelection(selection: SelectionInput, document: Document
   }
 
   let shallowestIndent = Number.POSITIVE_INFINITY;
+  let shallowestLine = startLine;
   for (let index = startLine; index <= endLine; index++) {
     const line = document.lineAt(index);
     if (isBlankText(line.text)) {
       continue;
     }
-    shallowestIndent = Math.min(shallowestIndent, indentColumns(line.text));
+    const indent = indentColumns(line.text);
+    if (indent < shallowestIndent) {
+      shallowestIndent = indent;
+      shallowestLine = index;
+    }
+  }
+  // A selection whose shallowest line is an `- else` has left the `- if` it answers to outside, and
+  // neither half survives being raised or extracted alone. For a `- when` nested under its `- case`
+  // the opener is shallower still, which moves the indent everything below is measured against.
+  const opener = findBlockStart(shallowestLine, document);
+  if (opener < startLine) {
+    startLine = opener;
+    shallowestIndent = Math.min(shallowestIndent, indentColumns(document.lineAt(opener).text));
   }
   // Blank lines defer to what follows them, the way findBlockEnd reads a block: a stanza split by
   // an empty line stays intact, and trailing blanks are not dragged in.

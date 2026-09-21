@@ -125,6 +125,69 @@ suite('pure/lineRange Test Suite', () => {
       assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 1, endLine: 1 });
     });
 
+    // The other end of the same construct. A selection that starts on a branch has left the opener
+    // it answers to outside: extracted, the partial begins with `- else` and Slim refuses to compile
+    // it; wrapped, the `- if` above is left with no `else` and the new one with no `if`.
+    test('should reach back to the if when the selection starts on its else', () => {
+      const document = snapshotOfLines(['div', '  - if a', '    p x', '  - else', '    p y', '  p after']);
+      assert.deepStrictEqual(normalizeSelection(caret(3), document), { startLine: 1, endLine: 4 });
+      assert.deepStrictEqual(normalizeSelection(whole(document, 3, 4), document), { startLine: 1, endLine: 4 });
+    });
+
+    test('should reach back past earlier branches to the opener', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '- elsif b', '  p y', '- else', '  p z', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(4), document), { startLine: 0, endLine: 5 });
+    });
+
+    test('should reach back to the begin from its rescue', () => {
+      const document = snapshotOfLines(['- begin', '  p a', '- rescue Foo', '  p b', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(2), document), { startLine: 0, endLine: 3 });
+    });
+
+    // Slim takes `- when` one level under `- case` as well as beside it, and once it has, the `- else`
+    // of that case sits at the nested level too. The opener is then shallower than the branch.
+    test('should reach back to the case from a when or an else nested under it', () => {
+      const document = snapshotOfLines(['- case a', '  - when 1', '    p one', '  - else', '    p other', 'p after']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 0, endLine: 4 });
+      assert.deepStrictEqual(normalizeSelection(caret(3), document), { startLine: 0, endLine: 4 });
+    });
+
+    // Slim compiles `- y = case x` with its `- when` beside it, which the same-indent rule already
+    // reaches; nested under it the template does not compile at all, so that shape is not chased.
+    test('should reach back to a case that is assigned', () => {
+      const document = snapshotOfLines(['- y = case x', '- when 1', '  - z = 1', '- else', '  - z = 0', 'p after']);
+      assert.deepStrictEqual(normalizeSelection(caret(3), document), { startLine: 0, endLine: 4 });
+    });
+
+    // Only `case` lets its branches sit a level down. An `- else` under anything else is not the
+    // document it looks like, and nothing is moved.
+    test('should not reach for a shallower line that is not a case', () => {
+      const document = snapshotOfLines(['- if a', '  - else', '    p y']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 1, endLine: 2 });
+    });
+
+    // `case`/`in` nests the same way `case`/`when` does: Slim compiles `- in` a level under `- case`.
+    test('should reach back to the case from an in nested under it', () => {
+      const document = snapshotOfLines(['- case a', '  - in Integer', '    p int', '  - else', '    p o', 'p after']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 0, endLine: 4 });
+    });
+
+    test('should look past blank lines for the opener', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '', '- else', '  p y']);
+      assert.deepStrictEqual(normalizeSelection(caret(3), document), { startLine: 0, endLine: 4 });
+    });
+
+    // Nothing above it to answer to: the document is not what it looks like, and nothing is moved.
+    test('should leave a branch that opens the document where it is', () => {
+      const document = snapshotOfLines(['- else', '  p y']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 1 });
+    });
+
+    test('should leave a selection that does not start on a branch where it starts', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '- else', '  p y']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 1, endLine: 1 });
+    });
+
     test('should not read a branch keyword out of a longer word', () => {
       const document = snapshotOfLines(['- if a', '  p x', '- elsewhere = 1', 'footer']);
       assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 1 });
