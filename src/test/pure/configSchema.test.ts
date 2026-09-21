@@ -99,4 +99,9 @@ suite('configSchema Test Suite', () => {
     assert.deepStrictEqual(normalizeConfig({ lintExclude: ['a', 42, '', '  ', null, 'b'] }).lintExclude, ['a', 'b']);
     assert.deepStrictEqual(normalizeConfig({ lintExclude: 'not an array' }).lintExclude, []);
   });
+
+  // A glob matches every character it is given: a pasted trailing space is one no path ends with.
+  test('should trim lintExclude entries like the other path settings', () => {
+    assert.deepStrictEqual(normalizeConfig({ lintExclude: [' **/vendor/** ', '\tapp/legacy/**'] }).lintExclude, ['**/vendor/**', 'app/legacy/**']);
+  });
 });
