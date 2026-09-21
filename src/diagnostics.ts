@@ -46,6 +46,12 @@ export class DiagnosticsController implements vscode.Disposable {
   /** Guards against a killed process resolving after a newer request already published. */
   private readonly generations = new Map<string, number>();
   /**
+   * One counter for every document rather than one each. forget() drops a document's entry while
+   * the document may stay open - lint.run switching off, a language-mode flip - and a per-document
+   * count would restart at the number the run it just abandoned still holds.
+   */
+  private lastGeneration = 0;
+  /**
    * The text each document's published diagnostics were produced from.
    *
    * Under onType the save that ends a burst of keystrokes asks about text the debounced run already
@@ -207,7 +213,7 @@ export class DiagnosticsController implements vscode.Disposable {
       return;
     }
 
-    const generation = (this.generations.get(key) ?? 0) + 1;
+    const generation = ++this.lastGeneration;
     this.generations.set(key, generation);
 
     const version = document.version;
