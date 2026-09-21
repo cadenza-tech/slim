@@ -80,18 +80,40 @@ export interface ProcessRunnerDeps {
 }
 
 /**
- * Kills a child and, on Windows, its whole tree.
+ * Signals a child and everything it started, off Windows.
  *
- * `child.kill` reaches only the direct child. On the cmd.exe wrapper path that is cmd itself: the
- * ruby grandchild survives, keeps the inherited stdio pipes open - so 'close' waits on it - and
- * burns CPU on the very document that just timed out. taskkill /T is the platform's tree kill; it
- * is addressed absolutely because resolving commands to absolute paths is invariant here, and the
- * current directory must never be searched for it.
+ * `child.kill` reaches only the direct child, and an executablePath wrapper that does not `exec` - a
+ * docker `bin/slim-lint` - leaves the real work in a grandchild that survives it and goes on burning
+ * a core on the very document that just timed out. Every child is spawned as the leader of its own
+ * process group for this, and a negative pid addresses the group. A group id stays taken for as long
+ * as any member lives, so this cannot hit a stranger while the group is what holds the pipes. What
+ * it cannot reach is a descendant that left the group: the group is then empty, ESRCH says so, and
+ * the direct child is all there is to signal.
+ */
+function signalGroup(child: ChildProcess, signal: NodeJS.Signals): void {
+  if (child.pid === undefined) {
+    // No pid means the spawn already failed; there is nothing alive to address by id.
+    child.kill(signal);
+    return;
+  }
+  try {
+    process.kill(-child.pid, signal);
+  } catch {
+    child.kill(signal);
+  }
+}
+
+/**
+ * Kills a child and its whole tree.
+ *
+ * On the cmd.exe wrapper path the direct child is cmd itself: the ruby grandchild survives, keeps the
+ * inherited stdio pipes open - so 'close' waits on it - and burns CPU on the very document that just
+ * timed out. taskkill /T is the platform's tree kill; it is addressed absolutely because resolving
+ * commands to absolute paths is invariant here, and the current directory must never be searched for it.
  */
 function killTree(child: ChildProcess, platform: NodeJS.Platform): void {
   if (platform !== 'win32' || child.pid === undefined) {
-    // No pid means the spawn already failed; there is nothing alive to address by id.
-    child.kill('SIGKILL');
+    signalGroup(child, 'SIGKILL');
     return;
   }
   const taskkill = path.win32.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'taskkill.exe');
@@ -149,7 +171,11 @@ export function createProcessRunner(deps: ProcessRunnerDeps): DisposableProcessR
           env: request.env,
           shell: false,
           windowsHide: true,
-          windowsVerbatimArguments: request.windowsVerbatimArguments === true
+          windowsVerbatimArguments: request.windowsVerbatimArguments === true,
+          // Its own process group off Windows, which is what lets signalGroup reach a grandchild. The
+          // other side of it: a signal sent to the extension host's group no longer reaches the child,
+          // which is what dispose() is for.
+          detached: platform !== 'win32'
         });
       } catch (error) {
         resolve({ ok: false, reason: 'spawn-error', stderr: '', message: error instanceof Error ? error.message : String(error) });
@@ -185,8 +211,8 @@ export function createProcessRunner(deps: ProcessRunnerDeps): DisposableProcessR
           killTree(child, platform);
           return;
         }
-        child.kill('SIGTERM');
-        killTimer = setTimeout(() => child.kill('SIGKILL'), killGraceMs);
+        signalGroup(child, 'SIGTERM');
+        killTimer = setTimeout(() => signalGroup(child, 'SIGKILL'), killGraceMs);
       };
 
       // stdout carries the JSON report, so exceeding the budget fails the run outright: a
@@ -254,12 +280,20 @@ export function createProcessRunner(deps: ProcessRunnerDeps): DisposableProcessR
       };
 
       // 'exit' rather than 'close' for a run already given up on. An executablePath naming a wrapper
-      // that does not `exec` leaves slim-lint as a grandchild holding the stdio pipes; kill() reaches
-      // only the wrapper, and 'close' then waits for the grandchild - with this promise, and its
-      // concurrency slot, held for as long as it lives. Nothing it still writes is wanted.
+      // that does not `exec` leaves slim-lint as a grandchild holding the stdio pipes, and 'close'
+      // waits for whoever holds them - a descendant that left the process group included - with this
+      // promise, and its concurrency slot, held for as long as that lives. Nothing it still writes is
+      // wanted.
+      //
+      // Settling clears the kill timer, so what is left of the group is taken down here rather than
+      // after the grace period: a grandchild that sat out the SIGTERM would otherwise outlive the run
+      // for good.
       child.on('exit', () => {
         const result = abandoned();
         if (result !== undefined) {
+          if (platform !== 'win32') {
+            signalGroup(child, 'SIGKILL');
+          }
           child.stdout?.destroy();
           child.stderr?.destroy();
           finish(result);
