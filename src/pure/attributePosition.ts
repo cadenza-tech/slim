@@ -107,11 +107,20 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
   let needsSeparator = false;
   /** Past an attribute's `=` with nothing of its value read yet. Slim allows whitespace there. */
   let valuePending = false;
+  /**
+   * A name, then whitespace, and nothing else yet. Slim allows whitespace on both sides of the `=`,
+   * so `href = "/x"` is one attribute; without this the `=` would find no name to belong to and the
+   * value would read as the next name. Its own flag rather than keeping `pendingToken` alive: the
+   * splat below opens only when no token is pending.
+   */
+  let nameCompleted = false;
 
   for (; index < linePrefix.length; index++) {
     const character = linePrefix[index] as string;
     const awaitingValue: boolean = valuePending;
     valuePending = awaitingValue && (character === '=' || isSpaceCharacter(character));
+    const afterName: boolean = nameCompleted;
+    nameCompleted = afterName && isSpaceCharacter(character);
 
     if (character === "'" || character === '"') {
       if (stack.length === 0 && !inValue) {
@@ -176,6 +185,8 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
         }
         sawBareSeparator = true;
       }
+      // Bare notation never reaches the `=` with this set: the fence above returns first.
+      nameCompleted = nameCompleted || (pendingToken && !inValue);
       inValue = false;
       pendingToken = false;
       tokenHadEq = false;
@@ -185,7 +196,7 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
     }
 
     if (character === '=') {
-      if (pendingToken && !inValue) {
+      if ((pendingToken || afterName) && !inValue) {
         tokenHadEq = true;
         inValue = true;
         valuePending = true;

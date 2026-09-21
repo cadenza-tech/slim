@@ -40,6 +40,21 @@ suite('pure/attributePosition Test Suite', () => {
       assert.strictEqual(syntaxAt('input(disabled data-tur'), 'wrappedAttributes');
     });
 
+    // Slim takes what follows the `=` for the value whether or not a space precedes it: it renders
+    // `a(href = "/x") link` as `<a href="/x">link</a>`. A name offered here writes
+    // `a(href = data-turbo-frame="")`.
+    test('should reject a value position past a spaced equals sign in a wrapper', () => {
+      assert.strictEqual(syntaxAt('a(href = da'), null);
+      assert.strictEqual(syntaxAt('a[href = da'), null);
+      assert.strictEqual(syntaxAt('a{href = da'), null);
+      assert.strictEqual(syntaxAt('a(href =da'), null);
+      assert.strictEqual(syntaxAt('a(href  =  da'), null);
+      // The value itself ends the position just as an unspaced one does.
+      assert.strictEqual(syntaxAt('a(href = "/x"da'), null);
+      // A splat still reads as a value, and its own token must not be taken for a completed name.
+      assert.strictEqual(syntaxAt('div(disabled *splat'), null);
+    });
+
     test('should classify a bare name after the tag', () => {
       assert.strictEqual(syntaxAt('a href="/" data-tur'), 'htmlAttributes');
       assert.strictEqual(syntaxAt("a title='Home' da"), 'htmlAttributes');
