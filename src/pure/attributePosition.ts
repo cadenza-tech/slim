@@ -105,9 +105,13 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
   let atHeaderEnd = true;
   /** Just past a closing value quote: a name typed here would fuse with the value. */
   let needsSeparator = false;
+  /** Past an attribute's `=` with nothing of its value read yet. Slim allows whitespace there. */
+  let valuePending = false;
 
   for (; index < linePrefix.length; index++) {
     const character = linePrefix[index] as string;
+    const awaitingValue: boolean = valuePending;
+    valuePending = awaitingValue && (character === '=' || isSpaceCharacter(character));
 
     if (character === "'" || character === '"') {
       if (stack.length === 0 && !inValue) {
@@ -161,6 +165,10 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
     }
 
     if (isSpaceCharacter(character)) {
+      if (awaitingValue) {
+        // The value has yet to start, so this space does not end it.
+        continue;
+      }
       if (stack.length === 0) {
         if (pendingToken && !tokenHadEq) {
           // The fence: a completed bare token with no `=` is prose, and so is everything after it.
@@ -180,6 +188,7 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
       if (pendingToken && !inValue) {
         tokenHadEq = true;
         inValue = true;
+        valuePending = true;
       } else if (stack.length === 0 && !inValue) {
         // `a = expr` writes output; the rest of the line is Ruby, not attributes.
         return null;

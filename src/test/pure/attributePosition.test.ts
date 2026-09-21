@@ -102,6 +102,16 @@ suite('pure/attributePosition Test Suite', () => {
       assert.strictEqual(syntaxAt('a(data-turbo-frame='), null);
     });
 
+    // Slim's attribute regexes allow whitespace after the `=`, so the value has not started yet and
+    // the position is still its own - `a href= data-turbo` would assign a name to href.
+    test('should stay in the value position across the space after an equals sign', () => {
+      assert.strictEqual(syntaxAt('a href= '), null);
+      assert.strictEqual(syntaxAt('a href= da'), null);
+      assert.strictEqual(syntaxAt('a href=  \tda'), null);
+      assert.strictEqual(syntaxAt('a(href= da'), null);
+      assert.strictEqual(syntaxAt('a href= "/" da'), 'htmlAttributes');
+    });
+
     // `doctype` reads like a tag and is not one: what follows it is a doctype name.
     test('should reject everything after doctype', () => {
       assert.strictEqual(syntaxAt('doctype '), null);
