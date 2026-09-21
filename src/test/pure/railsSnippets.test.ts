@@ -119,6 +119,25 @@ suite('pure/railsSnippets Test Suite', () => {
     ]);
   });
 
+  // A placeholder that opens with its own comma - `${2:, class: '$3'}` - is how an optional argument
+  // is written, and it only parses when an argument already stands before it. Directly after the
+  // method name it expands to `tag.div, class: ''`, which Ruby rejects before the user has typed
+  // anything. Pinned for the set written here; the vendored bodies are upstream's.
+  test('should not open the argument list of a body written here with a comma', () => {
+    const expand = (body: string): string => {
+      let text = body;
+      for (let previous = ''; previous !== text; ) {
+        previous = text;
+        text = text.replace(/\$\{\d+:([^${}]*)\}/g, '$1').replace(/\$\d+/g, '');
+      }
+      return text;
+    };
+    for (const snippet of MODERN_RAILS_SNIPPETS) {
+      const header = expand(snippet.body).split('\n')[0] as string;
+      assert.ok(!/^[=-]+\s*[\w.?!]+\s*,/.test(header), `${snippet.prefix} expands to ${JSON.stringify(header)}`);
+    }
+  });
+
   suite('shouldOfferRailsSnippets', () => {
     function counting(result: boolean) {
       const probe = Object.assign(
