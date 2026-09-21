@@ -97,6 +97,32 @@ export function skipSpaces(text: string, from: number): number {
   return index;
 }
 
+/** Slim's `tabsize` default. Nothing in a .slim file can change it, only the application's Slim options. */
+const SLIM_TAB_SIZE = 4;
+
+/**
+ * How deep Slim reads a line as indented: a tab runs to the next multiple of four columns, as
+ * Slim::Parser#get_indent expands it.
+ *
+ * Counting characters instead is only the same thing while a file sticks to one of the two. Slim
+ * accepts a mix, and there a tab-indented child - two characters, eight columns - measures shallower
+ * than its four-space parent, which is how a block ends one line early.
+ */
+export function indentColumns(text: string): number {
+  let columns = 0;
+  for (let index = 0; index < text.length; index++) {
+    const code = text.charCodeAt(index);
+    if (code === SPACE) {
+      columns++;
+    } else if (code === TAB) {
+      columns += SLIM_TAB_SIZE - (columns % SLIM_TAB_SIZE);
+    } else {
+      break;
+    }
+  }
+  return columns;
+}
+
 /**
  * True when `text` holds nothing but spaces and tabs.
  *

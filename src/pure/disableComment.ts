@@ -10,9 +10,15 @@
 //     img src="a.gif"              <- ...and indent 4 > 2 swallows this, so it disappears
 //
 // The marker therefore goes after the whole block, never after the single line.
+//
+// The `disable` marker has the mirror-image problem: written above a line that something else
+// consumes - the body of a text block or a filter, the rest of a wrapped attribute list - it is
+// rendered into the page or breaks the expression apart. src/pure/lineOwner.ts finds the line that
+// consumes it, and the pair goes around that one's block instead.
 
 import { isBlankText } from './characters';
 import { DIAGNOSTIC_SOURCE } from './diagnosticMapper';
+import { blockEnd, owningLine } from './lineOwner';
 import type { DocumentSnapshot, Eol } from './textModel';
 
 export interface InsertionSpec {
@@ -21,36 +27,21 @@ export interface InsertionSpec {
   readonly text: string;
 }
 
-function indentWidth(text: string, firstNonWhitespaceCharacterIndex: number): number {
-  return isBlankText(text) ? Number.POSITIVE_INFINITY : firstNonWhitespaceCharacterIndex;
-}
-
 /**
- * Finds the last line belonging to the block that starts at `lineIndex`.
+ * Finds the last line belonging to the block that starts at `lineIndex`, which must be a line Slim
+ * parses as one of its own.
  *
  * Blank lines never end a block on their own - they are only excluded when nothing deeper follows -
- * so a stanza split by an empty line stays intact.
+ * so a stanza split by an empty line stays intact. Indents are compared in columns as Slim counts
+ * them, and a line left open takes the lines that finish it whatever their indent; both live in
+ * src/pure/lineOwner.ts.
  */
 export function findBlockEnd(lineIndex: number, document: DocumentSnapshot): number {
-  const target = document.lineAt(lineIndex);
-  const targetIndent = indentWidth(target.text, target.firstNonWhitespaceCharacterIndex);
-  let blockEnd = lineIndex;
-
-  for (let index = lineIndex + 1; index < document.lineCount; index++) {
-    const line = document.lineAt(index);
-    if (isBlankText(line.text)) {
-      continue;
-    }
-    if (indentWidth(line.text, line.firstNonWhitespaceCharacterIndex) <= targetIndent) {
-      break;
-    }
-    blockEnd = index;
-  }
-  return blockEnd;
+  return isBlankText(document.lineAt(lineIndex).text) ? lineIndex : blockEnd(lineIndex, document);
 }
 
 /**
- * The indentation both comments are written at.
+ * The line whose indentation both comments are written at, or null in a document of blank lines.
  *
  * A blank target - the shape TrailingWhitespace and EmptyLines report - has no indent of its own,
  * and writing the pair at column 0 there is not neutral: the `enable` marker is a Slim comment,
@@ -58,44 +49,49 @@ export function findBlockEnd(lineIndex: number, document: DocumentSnapshot): num
  * non-blank line's indent is the one level that can never swallow it; a trailing blank falls back
  * to the preceding line, after which nothing follows that could be swallowed at any indent.
  */
-function insertionIndent(lineIndex: number, document: DocumentSnapshot): string {
-  const target = document.lineAt(lineIndex);
-  if (!isBlankText(target.text)) {
-    return target.text.slice(0, target.firstNonWhitespaceCharacterIndex);
+function anchorLine(lineIndex: number, document: DocumentSnapshot): number | null {
+  if (!isBlankText(document.lineAt(lineIndex).text)) {
+    return lineIndex;
   }
   for (let index = lineIndex + 1; index < document.lineCount; index++) {
-    const line = document.lineAt(index);
-    if (!isBlankText(line.text)) {
-      return line.text.slice(0, line.firstNonWhitespaceCharacterIndex);
+    if (!isBlankText(document.lineAt(index).text)) {
+      return index;
     }
   }
   for (let index = lineIndex - 1; index >= 0; index--) {
-    const line = document.lineAt(index);
-    if (!isBlankText(line.text)) {
-      return line.text.slice(0, line.firstNonWhitespaceCharacterIndex);
+    if (!isBlankText(document.lineAt(index).text)) {
+      return index;
     }
   }
-  return '';
+  return null;
 }
 
 /** Returns the two insertions that wrap a block in a slim-lint disable/enable pair. */
 export function buildDisableComment(lineIndex: number, linterName: string, document: DocumentSnapshot, eol: Eol): [InsertionSpec, InsertionSpec] {
-  const indent = insertionIndent(lineIndex, document);
-  const blockEnd = findBlockEnd(lineIndex, document);
+  const anchor = anchorLine(lineIndex, document);
+  const owner = anchor === null ? null : owningLine(anchor, document);
+  // An anchor that owns itself is consumed by nothing, so the pair goes tightly around the target -
+  // which for a blank target is not the anchor. Otherwise it goes around whatever consumes it.
+  const start = owner === null || owner === anchor ? lineIndex : owner;
+  const indentSource = owner === null ? null : document.lineAt(owner);
+  const indent = indentSource === null ? '' : indentSource.text.slice(0, indentSource.firstNonWhitespaceCharacterIndex);
+  // A blank target nothing takes is wrapped on its own. A trailing blank one can lie past the end
+  // of the block that owns its anchor, and has to be covered all the same.
+  const end = start === lineIndex ? findBlockEnd(start, document) : Math.max(lineIndex, blockEnd(start, document));
 
   const disable: InsertionSpec = {
-    line: lineIndex,
+    line: start,
     character: 0,
     text: `${indent}/ slim-lint:disable ${linterName}${eol}`
   };
 
-  if (blockEnd + 1 < document.lineCount) {
-    return [disable, { line: blockEnd + 1, character: 0, text: `${indent}/ slim-lint:enable ${linterName}${eol}` }];
+  if (end + 1 < document.lineCount) {
+    return [disable, { line: end + 1, character: 0, text: `${indent}/ slim-lint:enable ${linterName}${eol}` }];
   }
 
   // Appending past the last line: the separator has to come first.
-  const lastLine = document.lineAt(blockEnd);
-  return [disable, { line: blockEnd, character: lastLine.text.length, text: `${eol}${indent}/ slim-lint:enable ${linterName}` }];
+  const lastLine = document.lineAt(end);
+  return [disable, { line: end, character: lastLine.text.length, text: `${eol}${indent}/ slim-lint:enable ${linterName}` }];
 }
 
 /**
