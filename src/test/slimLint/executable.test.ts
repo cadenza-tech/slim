@@ -157,6 +157,22 @@ suite('slimLint/executable Test Suite', () => {
       assert.strictEqual(resolveOnPath('slim-lint', d), null);
     });
 
+    // `./bin` is the Rails binstub convention, and it is every bit as relative as `.`: the probe
+    // runs against the extension host's cwd while the spawn runs from the directory owning
+    // .slim-lint.yml, so a hit here names a file the spawn may never find - and one the repository
+    // chose. The absolute entry further along is the one a shell in that directory would not reach
+    // either way, and the only one this can honestly answer with.
+    test('should skip every relative PATH entry, not only the dot', () => {
+      const posix = deps({ 'bin/slim-lint': '', '/usr/local/bin/slim-lint': '' }, { env: { PATH: './bin:bin:..:/usr/local/bin' } });
+      assert.strictEqual(resolveOnPath('slim-lint', posix), '/usr/local/bin/slim-lint');
+
+      const windows = deps(
+        { 'slim-lint.exe': '', 'bin\\slim-lint.exe': '', 'C:\\Ruby\\bin\\slim-lint.bat': '' },
+        { platform: 'win32', env: { PATH: '.\\;bin;C:\\Ruby\\bin', PATHEXT: '.EXE;.BAT' } }
+      );
+      assert.strictEqual(resolveOnPath('slim-lint', windows)?.toLowerCase(), 'c:\\ruby\\bin\\slim-lint.bat');
+    });
+
     test('should try PATHEXT extensions on win32', () => {
       const d = deps({ 'C:\\Ruby\\bin\\slim-lint.bat': '' }, { platform: 'win32', env: { PATH: 'C:\\Ruby\\bin', PATHEXT: '.EXE;.BAT;.CMD' } });
       // The extension's casing comes from PATHEXT and is irrelevant on a case-insensitive

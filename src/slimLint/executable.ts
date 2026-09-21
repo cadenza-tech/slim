@@ -132,8 +132,10 @@ export function findBundlerGemfile(input: ResolveInput, deps: ResolveDeps): stri
 /**
  * Resolves a bare command name to an absolute path by scanning PATH.
  *
- * Empty PATH entries and '.' are dropped: on Windows an empty entry means the current directory,
- * which is exactly the vector this exists to close.
+ * Empty and relative PATH entries are dropped. An empty entry means the current directory, which on
+ * Windows is exactly the vector this exists to close; a relative one - `.`, or the `./bin` of the
+ * Rails binstub convention - is probed against the extension host's cwd but spawned from the
+ * directory owning .slim-lint.yml, so what it finds is neither absolute nor the file that would run.
  */
 export function resolveOnPath(command: string, deps: ResolveDeps): string | null {
   const p = pathApi(deps.platform);
@@ -149,7 +151,7 @@ export function resolveOnPath(command: string, deps: ResolveDeps): string | null
   for (const rawEntry of rawPath.split(separator)) {
     // cmd.exe tolerates quoted PATH entries and some installers write them; existsSync does not.
     const entry = isWindows && rawEntry.startsWith('"') && rawEntry.endsWith('"') && rawEntry.length >= 2 ? rawEntry.slice(1, -1) : rawEntry;
-    if (entry === '' || entry === '.') {
+    if (!p.isAbsolute(entry)) {
       continue;
     }
     for (const extension of extensions) {
