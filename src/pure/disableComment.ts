@@ -117,15 +117,19 @@ export interface DisableActionPlan {
   readonly linterName: string;
 }
 
-/** Syntax and parse errors carry no linter, so nothing can be disabled for them. */
+/** slim-lint names a linter after its Ruby class, and a directive can name nothing else. */
+const LINTER_NAME = /^[A-Za-z][A-Za-z0-9_]*$/;
+
+/**
+ * Syntax and parse errors carry no linter, so nothing can be disabled for them.
+ *
+ * The name comes out of a report, and the quick fix writes it into the document - the only process
+ * output this extension ever writes anywhere. One that is not a class name is refused rather than
+ * escaped: with a line break in it, it would put a line of the report's choosing into the template.
+ */
 export function linterNameOf(code: unknown): string | undefined {
-  if (typeof code === 'string') {
-    return code;
-  }
-  if (typeof code === 'object' && code !== null && 'value' in code) {
-    return String((code as { value: unknown }).value);
-  }
-  return undefined;
+  const name = typeof code === 'object' && code !== null && 'value' in code ? (code as { value: unknown }).value : code;
+  return typeof name === 'string' && LINTER_NAME.test(name) ? name : undefined;
 }
 
 /**

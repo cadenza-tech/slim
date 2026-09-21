@@ -422,6 +422,15 @@ suite('pure/disableComment Test Suite', () => {
         assert.strictEqual(linterNameOf(code), undefined, JSON.stringify(code) ?? 'undefined');
       }
     });
+
+    // The name is process output, and this is the one place any of it is written into a document.
+    // slim-lint names its linters after Ruby classes; a report naming one any other way gets no
+    // quick fix rather than a line of its own choosing in the buffer.
+    test('should refuse a name that is not a Ruby class name', () => {
+      for (const code of ['X\n= system("id")', 'Line Length', 'RuboCop/Style', '', { value: 'A\r\nB' }]) {
+        assert.strictEqual(linterNameOf(code), undefined, JSON.stringify(code));
+      }
+    });
   });
 
   suite('planDisableActions', () => {
