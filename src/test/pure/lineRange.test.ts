@@ -93,6 +93,34 @@ suite('pure/lineRange Test Suite', () => {
       assert.deepStrictEqual(normalizeSelection(whole(document, 0, 2), document), { startLine: 0, endLine: 4 });
     });
 
+    // `- else` sits at the opener's own indent, so indentation alone ends the block before it. Wrapping
+    // only the first branch re-binds the `else` to the new outer `- if` - valid Slim, different
+    // logic - and extracting it leaves an orphan `- else` behind `= render`.
+    test('should take every branch of a conditional under a caret on its opener', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '- elsif b', '  p y', '- else', '  p z', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 5 });
+    });
+
+    test('should take every `when` of a case written at its own indent', () => {
+      const document = snapshotOfLines(['- case x', '- when 1', '  p a', '- when 2', '  p b', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 4 });
+    });
+
+    test('should take a rescue and an ensure with their begin', () => {
+      const document = snapshotOfLines(['- begin', '  p a', '- rescue Foo', '  p b', '- ensure', '  p c', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 5 });
+    });
+
+    test('should not take a branch that belongs to something shallower than the selection', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '  p y', '- else', '  p z']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 1, endLine: 1 });
+    });
+
+    test('should not read a branch keyword out of a longer word', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '- elsewhere = 1', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 1 });
+    });
+
     // Slim counts a tab as running to the next multiple of four columns, so a file may mix the two.
     test('should measure nesting in columns when tabs and spaces are mixed', () => {
       const document = snapshotOfLines(['div', '    section', '\t\timg src="a"', 'footer']);

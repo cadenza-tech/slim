@@ -6,6 +6,12 @@
 import { indentColumns, isBlankText, skipSpaces } from './characters';
 import type { DocumentSnapshot } from './textModel';
 
+/**
+ * A control line that carries on the statement opened at its own indent instead of starting one.
+ * Runs once per command, not per keystroke, which is what makes a regex affordable here.
+ */
+const BRANCH_LINE = /^[ \t]*-\s*(?:else|elsif|when|in|rescue|ensure)\b/;
+
 const MIN_TAB_SIZE = 1;
 const MAX_TAB_SIZE = 8;
 const DEFAULT_TAB_SIZE = 2;
@@ -44,7 +50,9 @@ function sharedPrefix(left: string, right: string): string {
  * past the last selected line's own block. A selection covering two same-depth siblings can end in
  * the middle of the second one, and asking findBlockEnd about any single line would leave that
  * sibling's remaining children behind. Everything up to the next line at or above the shallowest
- * indent belongs to something selected.
+ * indent belongs to something selected - and so does a `- else` or `- when` sitting exactly at it:
+ * that is a branch of the statement the selection opened, and leaving it behind re-binds it to
+ * whatever the refactoring puts in its place.
  *
  * Indents are compared in columns as Slim counts them, so a file mixing tabs and spaces nests here
  * the way it renders.
@@ -81,7 +89,7 @@ export function normalizeSelection(selection: SelectionInput, document: Document
       continue;
     }
     const indent = indentColumns(line.text);
-    if (indent <= shallowestIndent) {
+    if (indent < shallowestIndent || (indent === shallowestIndent && !BRANCH_LINE.test(line.text))) {
       break;
     }
     blockEnd = index;
