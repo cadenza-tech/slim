@@ -65,6 +65,34 @@ export function mapOffense(offense: Offense, document: DocumentSnapshot): Diagno
   };
 }
 
+/**
+ * Maps every offense, keeping the first of any that would be drawn identically.
+ *
+ * slim-lint's RuboCop linter builds its offense from RuboCop's line and drops the column, so a cop
+ * that fires twice on one line - `= foo("a", "b")` under Style/StringLiterals - arrives twice, with
+ * nothing to tell the copies apart. Keyed on the range rather than on `offense.line`, because the
+ * two are not the same thing: a line past the end of the buffer clamps onto one that is already
+ * there. The message is part of the key even though `disableComment.ts` leaves it out of its own -
+ * the linter is `RuboCop` for every cop, so dropping it would silently merge two real findings. How
+ * many times an offense was reported goes with the repeats: nothing in the panel could show it.
+ */
 export function mapOffenses(offenses: readonly Offense[], document: DocumentSnapshot): DiagnosticSpec[] {
-  return offenses.map((offense) => mapOffense(offense, document));
+  const seen = new Set<string>();
+  const specs: DiagnosticSpec[] = [];
+
+  for (const offense of offenses) {
+    const spec = mapOffense(offense, document);
+    // NUL-joined because slim-lint writes none. A report is not trusted input, so one that carried a
+    // NUL could merge two specs that differ only in where it sits; hiding a diagnostic is the worst
+    // that does, and parser.ts would have to narrow every string to rule it out.
+    const key = [spec.start.line, spec.start.character, spec.end.line, spec.end.character, spec.severity, spec.code?.value ?? '', spec.message].join(
+      '\u0000'
+    );
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    specs.push(spec);
+  }
+  return specs;
 }
