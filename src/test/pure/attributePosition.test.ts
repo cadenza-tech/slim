@@ -26,6 +26,14 @@ suite('pure/attributePosition Test Suite', () => {
       assert.strictEqual(syntaxAt('a(href="/" data-tur'), 'wrappedAttributes');
     });
 
+    // Slim writes its whitespace modifiers between the tag and the attributes: `a> href="/"`.
+    test('should classify past a whitespace modifier on the tag', () => {
+      assert.strictEqual(syntaxAt('a> href="/" da'), 'htmlAttributes');
+      assert.strictEqual(syntaxAt('a< da'), 'htmlAttributes');
+      assert.strictEqual(syntaxAt('a<>(da'), 'wrappedAttributes');
+      assert.strictEqual(syntaxAt('li: a> da'), 'htmlAttributes');
+    });
+
     // A bare name inside a wrapper is a boolean attribute, so the next word is a name again.
     test('should classify after a boolean attribute inside a wrapper', () => {
       assert.strictEqual(syntaxAt('input(disabled '), 'wrappedAttributes');

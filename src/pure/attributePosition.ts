@@ -80,6 +80,12 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
     break;
   }
 
+  // Slim's whitespace modifiers sit between the header and its attributes - `a> href="/"`,
+  // `a<>(href="/")` - so a wrapper may still open directly after them.
+  while (linePrefix[index] === '<' || linePrefix[index] === '>') {
+    index++;
+  }
+
   const stack: Bracket[] = [];
   /** Inside the value half of an attribute, after its `=`. */
   let inValue = false;
