@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
-export const EXTENSION_ID = 'cadenza-tech.slim';
+export const EXTENSION_ID = 'cadenza-tech.vscode-slim';
 export const FIXTURE_VIEWS = 'app/views';
 
 /** Absolute path inside src/test/fixtures/rails-like, which .vscode-test.mjs opens as the folder. */

@@ -4979,27 +4979,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"slim@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "slim@workspace:."
-  dependencies:
-    "@biomejs/biome": "npm:^2.5.4"
-    "@types/mocha": "npm:^10.0.10"
-    "@types/node": "npm:~24.13.3"
-    "@types/vscode": "npm:~1.57.0"
-    "@vscode/test-cli": "npm:^0.0.15"
-    "@vscode/test-electron": "npm:^3.0.0"
-    "@vscode/vsce": "npm:^3.9.2"
-    c8: "npm:^12.0.0"
-    esbuild: "npm:^0.28.1"
-    mocha: "npm:^11.7.6"
-    npm-run-all: "npm:^4.1.5"
-    ovsx: "npm:^1.0.2"
-    typescript: "npm:^7.0.2"
-    vscode-tmgrammar-test: "npm:^0.1.3"
-  languageName: unknown
-  linkType: soft
-
 "spdx-correct@npm:^3.0.0":
   version: 3.2.0
   resolution: "spdx-correct@npm:3.2.0"
@@ -5725,6 +5704,27 @@ __metadata:
   checksum: 10c0/bef0073c665ddf8c86e51da94529c905856559e9aba97a9882f951acd572da560384775941ab6e7e8db94d9c578b25fefb951e4b73c37e8712e16b0231de2689
   languageName: node
   linkType: hard
+
+"vscode-slim@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "vscode-slim@workspace:."
+  dependencies:
+    "@biomejs/biome": "npm:^2.5.4"
+    "@types/mocha": "npm:^10.0.10"
+    "@types/node": "npm:~24.13.3"
+    "@types/vscode": "npm:~1.57.0"
+    "@vscode/test-cli": "npm:^0.0.15"
+    "@vscode/test-electron": "npm:^3.0.0"
+    "@vscode/vsce": "npm:^3.9.2"
+    c8: "npm:^12.0.0"
+    esbuild: "npm:^0.28.1"
+    mocha: "npm:^11.7.6"
+    npm-run-all: "npm:^4.1.5"
+    ovsx: "npm:^1.0.2"
+    typescript: "npm:^7.0.2"
+    vscode-tmgrammar-test: "npm:^0.1.3"
+  languageName: unknown
+  linkType: soft
 
 "vscode-textmate@npm:^7.0.1":
   version: 7.0.4
