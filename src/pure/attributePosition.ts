@@ -19,6 +19,9 @@ import { findLiteralEnd, isNameCharacter, isSpaceCharacter, skipSpaces } from '.
 /** Line leads that can never be a tag: code, verbatim text, comment, escape, inline HTML. */
 const REJECT_STARTS = new Set(['-', '=', '|', "'", '/', '\\', '<']);
 
+/** Reads like a tag and is not one: Slim matches it before any tag, and a doctype name follows. */
+const DOCTYPE = 'doctype';
+
 export interface AttributePosition {
   readonly syntax: AttributeSyntax;
   /**
@@ -37,6 +40,9 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
   let index = skipSpaces(linePrefix, 0);
   const lead = linePrefix[index];
   if (lead === undefined || REJECT_STARTS.has(lead)) {
+    return null;
+  }
+  if (linePrefix.startsWith(DOCTYPE, index) && !isNameCharacter(linePrefix[index + DOCTYPE.length])) {
     return null;
   }
 
@@ -80,6 +86,12 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
     break;
   }
 
+  // Slim's whitespace modifiers sit between the header and its attributes - `a> href="/"`,
+  // `a<>(href="/")` - so a wrapper may still open directly after them.
+  while (linePrefix[index] === '<' || linePrefix[index] === '>') {
+    index++;
+  }
+
   const stack: Bracket[] = [];
   /** Inside the value half of an attribute, after its `=`. */
   let inValue = false;
@@ -93,9 +105,22 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
   let atHeaderEnd = true;
   /** Just past a closing value quote: a name typed here would fuse with the value. */
   let needsSeparator = false;
+  /** Past an attribute's `=` with nothing of its value read yet. Slim allows whitespace there. */
+  let valuePending = false;
+  /**
+   * A name, then whitespace, and nothing else yet. Slim allows whitespace on both sides of the `=`,
+   * so `href = "/x"` is one attribute; without this the `=` would find no name to belong to and the
+   * value would read as the next name. Its own flag rather than keeping `pendingToken` alive: the
+   * splat below opens only when no token is pending.
+   */
+  let nameCompleted = false;
 
   for (; index < linePrefix.length; index++) {
     const character = linePrefix[index] as string;
+    const awaitingValue: boolean = valuePending;
+    valuePending = awaitingValue && (character === '=' || isSpaceCharacter(character));
+    const afterName: boolean = nameCompleted;
+    nameCompleted = afterName && isSpaceCharacter(character);
 
     if (character === "'" || character === '"') {
       if (stack.length === 0 && !inValue) {
@@ -149,6 +174,10 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
     }
 
     if (isSpaceCharacter(character)) {
+      if (awaitingValue) {
+        // The value has yet to start, so this space does not end it.
+        continue;
+      }
       if (stack.length === 0) {
         if (pendingToken && !tokenHadEq) {
           // The fence: a completed bare token with no `=` is prose, and so is everything after it.
@@ -156,6 +185,8 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
         }
         sawBareSeparator = true;
       }
+      // Bare notation never reaches the `=` with this set: the fence above returns first.
+      nameCompleted = nameCompleted || (pendingToken && !inValue);
       inValue = false;
       pendingToken = false;
       tokenHadEq = false;
@@ -165,9 +196,10 @@ export function classifyAttributePosition(linePrefix: string): AttributePosition
     }
 
     if (character === '=') {
-      if (pendingToken && !inValue) {
+      if ((pendingToken || afterName) && !inValue) {
         tokenHadEq = true;
         inValue = true;
+        valuePending = true;
       } else if (stack.length === 0 && !inValue) {
         // `a = expr` writes output; the rest of the line is Ruby, not attributes.
         return null;

@@ -211,6 +211,11 @@ export class SlimLintClient {
       // there is, since neither produces any stderr.
       this.logger.error(detail ?? `slim-lint failed (${reason})`);
     }
+    if (reason === 'exit' && result.ok) {
+      // bin/slim-lint builds its logger on $stdout, so the sentence that explains a 64, 70 or 78 -
+      // the YAML error, the rejected flag, the backtrace - arrives there and stderr stays empty.
+      this.logger.detail('stdout', result.stdout);
+    }
     if (result.stderr.trim() !== '') {
       this.logger.detail('stderr', result.stderr);
     }

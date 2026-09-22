@@ -170,7 +170,27 @@
 #    ^^^ text.slim text.erb.filter.slim constant.language.name.erb.filter.slim
 #       ^ text.slim text.erb.filter.slim
 >      <%= hello %>
-#^^^^^^^^^^^^^^^^^^^ text.slim text.erb.filter.slim
+#^^^^^^ text.slim text.erb.filter.slim
+#      ^^^ text.slim text.erb.filter.slim punctuation.section.embedded.begin.erb.slim
+#         ^^^^^^^ text.slim text.erb.filter.slim source.ruby.embedded.erb.slim
+#                ^^ text.slim text.erb.filter.slim punctuation.section.embedded.end.erb.slim
+>      <% x # note %>
+#^^^^^^ text.slim text.erb.filter.slim
+#      ^^ text.slim text.erb.filter.slim punctuation.section.embedded.begin.erb.slim
+#        ^^^ text.slim text.erb.filter.slim source.ruby.embedded.erb.slim
+#           ^^^^^^^ text.slim text.erb.filter.slim source.ruby.embedded.erb.slim comment.line.number-sign.ruby
+#                  ^^ text.slim text.erb.filter.slim punctuation.section.embedded.end.erb.slim
+>      <%# a comment %>
+#^^^^^^ text.slim text.erb.filter.slim
+#      ^^^ text.slim text.erb.filter.slim comment.block.erb.slim
+#         ^^^^^^^^^^^ text.slim text.erb.filter.slim comment.block.erb.slim
+#                    ^^ text.slim text.erb.filter.slim comment.block.erb.slim
+>      <p class='x'>it's</p>
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim text.erb.filter.slim
+>      <%= unclosed
+#^^^^^^ text.slim text.erb.filter.slim
+#      ^^^ text.slim text.erb.filter.slim punctuation.section.embedded.begin.erb.slim
+#         ^^^^^^^^^^ text.slim text.erb.filter.slim source.ruby.embedded.erb.slim
 >    ruby:
 #^^^^ text.slim text.ruby.filter.slim
 #    ^^^^ text.slim text.ruby.filter.slim constant.language.name.ruby.filter.slim
@@ -191,5 +211,5 @@
 #      ^^^^^^^^^^^^^^^^^^^^ text.slim
 >    <div>Inline HTML</div>
 #^^^^ text.slim
-#    ^^^^^^^^^^^^^^^^^^^^^^ text.slim
+#    ^^^^^^^^^^^^^^^^^^^^^^^ text.slim
 >

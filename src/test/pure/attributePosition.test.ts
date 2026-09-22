@@ -26,10 +26,33 @@ suite('pure/attributePosition Test Suite', () => {
       assert.strictEqual(syntaxAt('a(href="/" data-tur'), 'wrappedAttributes');
     });
 
+    // Slim writes its whitespace modifiers between the tag and the attributes: `a> href="/"`.
+    test('should classify past a whitespace modifier on the tag', () => {
+      assert.strictEqual(syntaxAt('a> href="/" da'), 'htmlAttributes');
+      assert.strictEqual(syntaxAt('a< da'), 'htmlAttributes');
+      assert.strictEqual(syntaxAt('a<>(da'), 'wrappedAttributes');
+      assert.strictEqual(syntaxAt('li: a> da'), 'htmlAttributes');
+    });
+
     // A bare name inside a wrapper is a boolean attribute, so the next word is a name again.
     test('should classify after a boolean attribute inside a wrapper', () => {
       assert.strictEqual(syntaxAt('input(disabled '), 'wrappedAttributes');
       assert.strictEqual(syntaxAt('input(disabled data-tur'), 'wrappedAttributes');
+    });
+
+    // Slim takes what follows the `=` for the value whether or not a space precedes it: it renders
+    // `a(href = "/x") link` as `<a href="/x">link</a>`. A name offered here writes
+    // `a(href = data-turbo-frame="")`.
+    test('should reject a value position past a spaced equals sign in a wrapper', () => {
+      assert.strictEqual(syntaxAt('a(href = da'), null);
+      assert.strictEqual(syntaxAt('a[href = da'), null);
+      assert.strictEqual(syntaxAt('a{href = da'), null);
+      assert.strictEqual(syntaxAt('a(href =da'), null);
+      assert.strictEqual(syntaxAt('a(href  =  da'), null);
+      // The value itself ends the position just as an unspaced one does.
+      assert.strictEqual(syntaxAt('a(href = "/x"da'), null);
+      // A splat still reads as a value, and its own token must not be taken for a completed name.
+      assert.strictEqual(syntaxAt('div(disabled *splat'), null);
     });
 
     test('should classify a bare name after the tag', () => {
@@ -92,6 +115,23 @@ suite('pure/attributePosition Test Suite', () => {
       assert.strictEqual(syntaxAt('a(href='), null);
       assert.strictEqual(syntaxAt('a(href="x'), null);
       assert.strictEqual(syntaxAt('a(data-turbo-frame='), null);
+    });
+
+    // Slim's attribute regexes allow whitespace after the `=`, so the value has not started yet and
+    // the position is still its own - `a href= data-turbo` would assign a name to href.
+    test('should stay in the value position across the space after an equals sign', () => {
+      assert.strictEqual(syntaxAt('a href= '), null);
+      assert.strictEqual(syntaxAt('a href= da'), null);
+      assert.strictEqual(syntaxAt('a href=  \tda'), null);
+      assert.strictEqual(syntaxAt('a(href= da'), null);
+      assert.strictEqual(syntaxAt('a href= "/" da'), 'htmlAttributes');
+    });
+
+    // `doctype` reads like a tag and is not one: what follows it is a doctype name.
+    test('should reject everything after doctype', () => {
+      assert.strictEqual(syntaxAt('doctype '), null);
+      assert.strictEqual(syntaxAt('doctype ht'), null);
+      assert.strictEqual(syntaxAt('doctype-switch da'), 'htmlAttributes');
     });
 
     // The fence: a completed bare token with no '=' is inline text, and so is everything after it.

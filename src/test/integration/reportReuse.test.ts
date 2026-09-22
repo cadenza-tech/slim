@@ -114,6 +114,27 @@ suite('report reuse Test Suite', () => {
     controller.dispose();
   });
 
+  // A forced request exists because the rules changed, so the digest recorded under the old ones
+  // stops answering anything the moment it arrives - whether or not the forced run goes on to
+  // publish. An unparseable report keeps the old diagnostics on purpose; keeping their digest too
+  // would make every later save of the same text skip, with the panel still showing the old rules.
+  test('should run again after a forced run that published nothing', async () => {
+    let attempts = 0;
+    const runner = stubLintRunner(() => {
+      attempts++;
+      return attempts === 2 ? { ok: false, kind: 'failed', reason: 'unparseable-report' } : { ok: true, outcome: { report: ONE_OFFENSE } };
+    });
+    const controller = new DiagnosticsController(runner, logger, () => config(), notice());
+    const document = await openView('offenses.slim');
+
+    await controller.lint(document, config());
+    await controller.lint(document, config(), true);
+    await controller.lint(document, config());
+
+    assert.strictEqual(runner.runs, 3, 'the report published before the forced run must not be reused after it');
+    controller.dispose();
+  });
+
   // slim.lint.exclude has to keep a file out of the panel; publish() re-checks it itself because
   // the setting can change while the run whose report it is publishing was in flight.
   test('should not record a report published for an excluded document', async () => {
@@ -165,6 +186,42 @@ suite('report reuse Test Suite', () => {
     current = config();
     await controller.lint(document, current);
     assert.strictEqual(calls, 2, 'the run cancelled by switching off must not leave a reusable report behind');
+    controller.dispose();
+  });
+
+  // forget() also runs for documents that stay open - lint.run switching off, a language-mode flip -
+  // so the next lint of the same version must not be handed the generation the abandoned run holds:
+  // that run would pass the staleness check when it finally drains, and its `cancelled` would clear
+  // what the newer run published.
+  test('should not let a run abandoned by forget() clear what a later run published', async () => {
+    let resolveFirst: ((result: RunResult) => void) | undefined;
+    let calls = 0;
+    const runner: LintRunner = {
+      resolve: (): Invocation => INVOCATION,
+      forget: (): void => undefined,
+      run: (): Promise<RunResult> => {
+        calls++;
+        if (calls === 1) {
+          return new Promise<RunResult>((resolve) => {
+            resolveFirst = resolve;
+          });
+        }
+        return Promise.resolve({ ok: true, outcome: { report: ONE_OFFENSE } });
+      }
+    };
+    const controller = new DiagnosticsController(runner, logger, () => config(), notice());
+    const document = await openView('offenses.slim');
+
+    const abandoned = controller.lint(document, config());
+    controller.forget(document);
+    await controller.lint(document, config());
+    resolveFirst?.({ ok: false, kind: 'skipped', reason: 'cancelled' });
+    await abandoned;
+
+    // Behavioural probe: had the abandoned run cleared the panel, the digest would be gone with it
+    // and this lint of identical text would spawn a third time.
+    await controller.lint(document, config());
+    assert.strictEqual(calls, 2, 'the abandoned run must not clear the report the later run published');
     controller.dispose();
   });
 });

@@ -9,7 +9,7 @@
       "beginCaptures": {
         "0": { "name": "punctuation.section.embedded.begin.slim" }
       },
-      "end": "\\}",
+      "end": "\\}|$",
       "endCaptures": {
         "0": { "name": "punctuation.section.embedded.end.slim" }
       },
@@ -19,9 +19,9 @@
   ],
   "repository": {
     "nested_braces": {
-      "$comment": "Keeps #{ {a: 1} } from ending at the inner closing brace.",
+      "$comment": "Keeps #{ {a: 1} } from ending at the inner closing brace. Ends at the end of the line for the same reason the rule above does: while this one is open, that one's end is never tried.",
       "begin": "\\{",
-      "end": "\\}",
+      "end": "\\}|$",
       "patterns": [{ "include": "#nested_braces" }, { "include": "source.ruby" }]
     }
   }

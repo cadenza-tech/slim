@@ -157,10 +157,55 @@ suite('slimLint/executable Test Suite', () => {
       assert.strictEqual(resolveOnPath('slim-lint', d), null);
     });
 
+    // `./bin` is the Rails binstub convention, and it is every bit as relative as `.`: the probe
+    // runs against the extension host's cwd while the spawn runs from the directory owning
+    // .slim-lint.yml, so a hit here names a file the spawn may never find - and one the repository
+    // chose. The absolute entry further along is the one a shell in that directory would not reach
+    // either way, and the only one this can honestly answer with.
+    test('should skip every relative PATH entry, not only the dot', () => {
+      const posix = deps({ 'bin/slim-lint': '', '/usr/local/bin/slim-lint': '' }, { env: { PATH: './bin:bin:..:/usr/local/bin' } });
+      assert.strictEqual(resolveOnPath('slim-lint', posix), '/usr/local/bin/slim-lint');
+
+      const windows = deps(
+        { 'slim-lint.exe': '', 'bin\\slim-lint.exe': '', 'C:\\Ruby\\bin\\slim-lint.bat': '' },
+        { platform: 'win32', env: { PATH: '.\\;bin;C:\\Ruby\\bin', PATHEXT: '.EXE;.BAT' } }
+      );
+      assert.strictEqual(resolveOnPath('slim-lint', windows)?.toLowerCase(), 'c:\\ruby\\bin\\slim-lint.bat');
+    });
+
+    // path.win32 calls `\tools` absolute, but it is relative to a drive: the probe resolves it on
+    // the extension host's drive and the spawn on the drive of the linted directory. A drive letter
+    // or a UNC prefix is what makes an entry mean one place.
+    test('should skip a win32 PATH entry that names no drive', () => {
+      const d = deps(
+        { '\\tools\\slim-lint.exe': '', '\\\\server\\share\\bin\\slim-lint.exe': '' },
+        { platform: 'win32', env: { PATH: '\\tools;\\\\server\\share\\bin', PATHEXT: '.EXE' } }
+      );
+      assert.strictEqual(resolveOnPath('slim-lint', d)?.toLowerCase(), '\\\\server\\share\\bin\\slim-lint.exe');
+    });
+
     test('should try PATHEXT extensions on win32', () => {
       const d = deps({ 'C:\\Ruby\\bin\\slim-lint.bat': '' }, { platform: 'win32', env: { PATH: 'C:\\Ruby\\bin', PATHEXT: '.EXE;.BAT;.CMD' } });
       // The extension's casing comes from PATHEXT and is irrelevant on a case-insensitive
       // filesystem, so only the resolved location is asserted.
+      assert.strictEqual(resolveOnPath('slim-lint', d)?.toLowerCase(), 'c:\\ruby\\bin\\slim-lint.bat');
+    });
+
+    // cmd.exe tries a name that already carries a PATHEXT extension as it stands, before appending
+    // any. Only appending made `"slim.slimLint.executablePath": "slim-lint.bat"` probe
+    // slim-lint.bat.EXE, slim-lint.bat.BAT, ... and report an installed executable as missing.
+    test('should find a win32 command that already carries its extension', () => {
+      const d = deps({ 'C:\\Ruby\\bin\\slim-lint.bat': '' }, { platform: 'win32', env: { PATH: 'C:\\Ruby\\bin', PATHEXT: '.EXE;.BAT;.CMD' } });
+      assert.strictEqual(resolveOnPath('slim-lint.bat', d), 'C:\\Ruby\\bin\\slim-lint.bat');
+    });
+
+    // RubyInstaller ships an extensionless `slim-lint` Ruby script beside slim-lint.bat, and
+    // CreateProcess cannot start it: a name with no PATHEXT extension must never match as it stands.
+    test('should not match an extensionless win32 file as it stands', () => {
+      const d = deps(
+        { 'C:\\Ruby\\bin\\slim-lint': '', 'C:\\Ruby\\bin\\slim-lint.bat': '' },
+        { platform: 'win32', env: { PATH: 'C:\\Ruby\\bin', PATHEXT: '.EXE;.BAT;.CMD' } }
+      );
       assert.strictEqual(resolveOnPath('slim-lint', d)?.toLowerCase(), 'c:\\ruby\\bin\\slim-lint.bat');
     });
 

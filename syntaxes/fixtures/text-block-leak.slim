@@ -1,0 +1,13 @@
+/ A text block hands its body to HTML and to Ruby, so it can be left open the way a filter can.
+/ Every line below that is not indented under one must be a Slim line again. The sentinel word is
+/ what the HTML grammar leaves open for real - a tag, a comment, a <script>; the `#{` needs no stub.
+| hello #{name
+p after an interpolation being typed
+' quoted #{other
+p after a quoted text block
+| <p LEFT_OPEN_BY_THE_STUB
+p after an open tag
+div
+  | nested #{x
+  p sibling of the text block
+p after a nested text block

@@ -109,7 +109,8 @@ suite('pure/partialPaths Test Suite', () => {
       ]);
     });
 
-    // A bare name is relative to the template's own directory, then to the inherited application prefix.
+    // A bare name belongs to the rendering controller's prefixes, which a file does not name. Beside
+    // the document is the guess that holds for a view in its controller's own directory.
     test('should look beside the document and then in application for a bare name', () => {
       const paths = partialCandidatePaths({ documentPath: VIEW, viewsRoot: '/repo/app/views', name: 'sidebar' }, 'linux');
       assert.deepStrictEqual(paths.slice(0, 2), ['/repo/app/views/posts/_sidebar.html.slim', '/repo/app/views/posts/_sidebar.slim']);
@@ -284,12 +285,15 @@ suite('pure/partialPaths Test Suite', () => {
     const VIEWS = '/repo/app/views';
     const HERE = '/repo/app/views/users';
 
-    // A partial beside the document is written bare, which is how Rails resolves it.
-    test('should label a sibling partial bare and a distant one root-relative', () => {
+    // Rails looks a name without a slash up under the rendering controller's prefixes, not beside the
+    // template that wrote it: from shared/_header, `render 'logo'` is "Missing partial posts/_logo,
+    // application/_logo". Which controller renders a view cannot be known from here, and the
+    // root-relative name resolves from all of them - Split to Partial writes it for the same reason.
+    test('should label a sibling partial root-relative, like any other', () => {
       const candidates = partialCompletionCandidates([`${HERE}/_row.slim`, `${VIEWS}/shared/_header.slim`], VIEWS, HERE, 'linux');
       assert.deepStrictEqual(
         candidates.map((c) => c.label),
-        ['row', 'shared/header']
+        ['users/row', 'shared/header']
       );
     });
 
@@ -298,12 +302,12 @@ suite('pure/partialPaths Test Suite', () => {
       const sorted = [...candidates].sort((a, b) => a.sortText.localeCompare(b.sortText));
       assert.deepStrictEqual(
         sorted.map((c) => c.label),
-        ['row', 'shared/header']
+        ['users/row', 'shared/header']
       );
     });
 
-    // Two directories can offer the same bare name, and the widget would show it twice with no way
-    // to tell them apart.
+    // A `.slim` and an `.erb` of one partial share a label, and the widget would show it twice with
+    // no way to tell them apart.
     test('should keep only the first path for a repeated label', () => {
       const candidates = partialCompletionCandidates([`${HERE}/_row.slim`, `${HERE}/_row.erb`], VIEWS, HERE, 'linux');
       assert.strictEqual(candidates.length, 1);
@@ -323,8 +327,9 @@ suite('pure/partialPaths Test Suite', () => {
       );
       assert.deepStrictEqual(
         candidates.map((c) => c.label),
-        ['row']
+        ['users/row']
       );
+      assert.ok(candidates[0]?.sortText.startsWith('0'), 'and must still be recognised as a sibling');
     });
 
     test('should keep the path it came from so the caller can map back to a uri', () => {

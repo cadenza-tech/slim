@@ -3,23 +3,52 @@
 // The hard part is not the literal, it is deciding that `render` is a Ruby call at all. A Slim line
 // that merely contains the word (`p Please render 'x'`), a Ruby assignment inside a ruby: filter
 // (`x = render 'y'`) and a method on a receiver (`x.render 'y'`) all have to be rejected, and that is
-// exactly the question computeCompletionWord already answers - so it is reused rather than reproduced.
+// exactly the question completionWord's isScriptPosition already answers - so it is reused rather than
+// reproduced.
 //
 // Everything here scans linearly. provideCompletionItems runs synchronously on every keystroke and a
 // Slim line can hold an inline data URI, which is the constraint src/pure/completionWord.ts documents.
 
-import { findLiteralEnd, isClosingBracket, isOpeningBracket, isSpaceCharacter, isWordCharacter, skipSpaces } from './characters';
-import { computeCompletionWord } from './completionWord';
+import {
+  findInterpolationEnd,
+  findLiteralEnd,
+  isClosingBracket,
+  isOpeningBracket,
+  isSpaceCharacter,
+  isWordCharacter,
+  skipSpaces
+} from './characters';
+import { isScriptPosition } from './completionWord';
 
 /**
  * How many `render` tokens left of the cursor are examined.
  *
  * A Slim line has a single script marker, so in real code the first candidate that clears the cheap
  * guards is the only one that can pass the marker test as well. The limit exists for input like
- * `'render '.repeat(20000)`, where every candidate clears the guards and computeCompletionWord would
+ * `'render '.repeat(20000)`, where every candidate clears the guards and isScriptPosition would
  * slice the whole prefix each time, turning the scan quadratic.
  */
 const MAX_RENDER_CANDIDATES = 8;
+
+/**
+ * How many literals of one argument list may be cut short of where findLiteralEnd put their end.
+ *
+ * The search for a closing quote is paid for by resuming behind it. A literal cut short - left
+ * open, as in `title: 'a, x: \'b`, or closed by a quote that belongs to a later argument, as in
+ * `partial: 'a, partial: \'b'` - resumes inside the text searched instead, where an escaped
+ * quote opens another literal whose search covers that text again: quadratic on a line full of
+ * them. A line being typed holds one or two. Past the limit the argument list is given up on.
+ */
+const MAX_CUT_SHORT_LITERALS = 8;
+
+/**
+ * How many `#{` that nothing closes are looked into within one name.
+ *
+ * One that closes is paid for by stepping over it. One that does not costs a search as far as the
+ * end of the literal and gains nothing, so a name made of them would be searched once per `#{`.
+ * Typing leaves one open; past this many the rest are read as text without looking.
+ */
+const MAX_UNCLOSED_INTERPOLATIONS = 8;
 
 const RENDER = 'render';
 /**
@@ -34,7 +63,10 @@ export interface PartialReference {
   readonly name: string;
   /** Offset of the character after the opening quote. */
   readonly start: number;
-  /** Offset of the closing quote, or the line length while the literal is still unterminated. */
+  /**
+   * Offset of the closing quote, or of where the name ends when that quote is missing or belongs to
+   * a later argument.
+   */
   readonly end: number;
 }
 
@@ -56,11 +88,89 @@ function readIdentifier(line: string, from: number): number {
   return index;
 }
 
-/** `quoteIndex` addresses the opening quote. An unterminated literal runs to the end of the line. */
-function readLiteral(line: string, quoteIndex: number): PartialReference {
+function endsUnterminatedName(character: string): boolean {
+  return isSpaceCharacter(character) || isClosingBracket(character) || character === ',' || character === '"' || character === "'";
+}
+
+/**
+ * Whether the path written between `start` and `end` holds a comma of its own.
+ *
+ * Only as far as `end`: past the literal the search would run to the end of the line once per
+ * `partial:` value, which is quadratic on a line full of them. A comma inside an interpolation -
+ * `"cards/#{kind.tr('-', '_')}"` - counts here like any other. Whose it is gets settled by
+ * unterminatedEnd, which steps over the interpolation and hands a complete path back whole - a path,
+ * that is: with a space or a bracket outside the interpolation, `"my dir/#{a(1, 2)}"` ends there.
+ */
+function pathHoldsComma(line: string, start: number, end: number): boolean {
+  for (let index = start; index < end; index++) {
+    if (line[index] === ',') {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Where a literal whose content begins at `start` ends when its closing quote cannot be relied on.
+ *
+ * Unterminated, it runs to the end of the line as Ruby reads it, but what follows a name there is
+ * the rest of the call - `'sha, locals: { post: @post }` - and the range a completion replaces must
+ * not take it along. A name ends at the first character that can only belong to the call:
+ * whitespace, a comma, a closing bracket or a quote. Narrower would be wrong - a directory may be
+ * named `my-dir` even though a partial may not.
+ *
+ * An interpolation that closes before `closed` is part of the name - brace, quotes, commas, spaces
+ * and all - which is what hands `"cards/#{kind.tr('-', '_')}"` back whole and still ends
+ * `"cards/#{kind}, title: "` at its comma. In single quotes `#{` interpolates nothing, but it is
+ * written there by mistake often enough, in a literal that is just as complete. One that nothing
+ * closes is text, and no bar to stepping over the next: `#{ki` is `#{kind}` being typed in front of
+ * a `/#{size}` that is already there. A `}` left over further along does close it, as it does for
+ * Ruby, and the name runs that far: `"cards/#{ki, title: "x" }`. Telling that brace from the
+ * interpolation's own would take reading the Ruby inside.
+ *
+ * Any other value ends at its first comma and nowhere before it. A title holds spaces, brackets, an
+ * apostrophe and the word `do`, and resuming among them hands them to the scan as Ruby: `do` ends
+ * the argument list, and `[` takes the rest of the line for a group. A comma of the title's own
+ * still does that to the words behind it.
+ */
+function unterminatedEnd(line: string, start: number, closed: number, isPartialName: boolean): number {
+  if (!isPartialName) {
+    const comma = line.indexOf(',', start);
+    return comma === -1 ? line.length : comma;
+  }
+  let unclosed = 0;
+  let end = start;
+  while (end < line.length && !endsUnterminatedName(line[end] as string)) {
+    if (unclosed < MAX_UNCLOSED_INTERPOLATIONS && line[end] === '#' && line[end + 1] === '{') {
+      const after = findInterpolationEnd(line, end + 1, closed);
+      if (after !== -1) {
+        end = after;
+        continue;
+      }
+      unclosed++;
+    }
+    end++;
+  }
+  return end;
+}
+
+/**
+ * Where the literal opened at `quoteIndex` ends. `closed` is what findLiteralEnd made of it: its
+ * closing quote, or the end of the line when it has none.
+ *
+ * With none its end is unterminatedEnd's, whatever it holds. A value left open has the rest of the
+ * call behind it just as a name has, and giving up on the line there loses a partial name that is
+ * complete.
+ *
+ * A closing quote proves little for a partial name: in `'sha, title: 'x'` it is the one that opens
+ * the next argument. No partial path holds a comma outside an interpolation, so a name holding one
+ * is read as if it had no closing quote - which leaves a path whole when the comma turns out to be
+ * an interpolation's. Any other value is taken whole - `title: 'a, b'` holds a comma of its own.
+ */
+function literalEnd(line: string, quoteIndex: number, closed: number, isPartialName: boolean): number {
   const start = quoteIndex + 1;
-  const end = findLiteralEnd(line, quoteIndex);
-  return { name: line.slice(start, end), start, end };
+  const cutShort = closed === line.length || (isPartialName && pathHoldsComma(line, start, closed));
+  return cutShort ? unterminatedEnd(line, start, closed, isPartialName) : closed;
 }
 
 /** Skips a bracketed group whole, so that the literals inside `locals: { a: 'b' }` stay invisible. */
@@ -70,8 +180,8 @@ function skipBalanced(line: string, openIndex: number): number {
   while (index < line.length) {
     const character = line[index] as string;
     if (character === "'" || character === '"') {
-      // findLiteralEnd rather than readLiteral: the name is thrown away here, and slicing every
-      // literal inside every skipped group is what made an inline data URI measurable.
+      // The index alone, never the text: nothing here is a name, and slicing every literal inside
+      // every skipped group is what made an inline data URI measurable.
       index = findLiteralEnd(line, index) + 1;
       continue;
     }
@@ -104,6 +214,7 @@ function referenceCovering(line: string, from: number, character: number): Parti
   let expectingPositional = true;
   let pendingKey: string | null = null;
   let parenthesised = false;
+  let cutShort = 0;
 
   if (line[index] === '(') {
     parenthesised = true;
@@ -117,13 +228,23 @@ function referenceCovering(line: string, from: number, character: number): Parti
       continue;
     }
     if (current === "'" || current === '"') {
-      const literal = readLiteral(line, index);
       const isPartialName = expectingPositional || (pendingKey !== null && PARTIAL_KEYWORDS.has(pendingKey));
-      // Both ends count as inside, so re-editing an existing name resolves and completes.
-      if (isPartialName && character >= literal.start && character <= literal.end) {
-        return literal;
+      const start = index + 1;
+      const closed = findLiteralEnd(line, index);
+      const end = literalEnd(line, index, closed, isPartialName);
+      if (end !== closed) {
+        cutShort++;
+        // Ahead of the cursor test: past the limit the line is not one being typed, and a name cut
+        // short in it is as much a guess under the cursor as anywhere else.
+        if (cutShort > MAX_CUT_SHORT_LITERALS) {
+          return null;
+        }
       }
-      index = literal.end + 1;
+      // Both ends count as inside, so re-editing an existing name resolves and completes.
+      if (isPartialName && character >= start && character <= end) {
+        return { name: line.slice(start, end), start, end };
+      }
+      index = end + 1;
       expectingPositional = false;
       pendingKey = null;
       continue;
@@ -184,9 +305,8 @@ export function partialReferenceAt(line: string, character: number): PartialRefe
     if (isIdentifierNeighbour(line[tokenStart - 1]) || !opensArguments(line[tokenEnd])) {
       continue;
     }
-    const word = computeCompletionWord(line.slice(0, tokenEnd));
     // No marker means plain text or a filter body, where `render 'x'` is rendered literally.
-    if (word === null || word.markerLength === 0) {
+    if (!isScriptPosition(line.slice(0, tokenEnd))) {
       continue;
     }
     const reference = referenceCovering(line, tokenEnd, character);

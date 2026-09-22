@@ -153,6 +153,159 @@ suite('package.json manifest Test Suite', () => {
         assert.ok(registered.has(grammar.scopeName), `${grammar.scopeName} is contributed but has no entry in grammar-test.config.json`);
       }
     });
+
+    /**
+     * The scopes the extensions built into VS Code register, of those this grammar includes. Each one
+     * is a claim that was checked against the `contributes.grammars` of those extensions; source.sass
+     * and text.html.erb are absent because only third-party extensions have them.
+     */
+    const STOCK_SCOPES = [
+      'source.coffee',
+      'source.css',
+      'source.css.less',
+      'source.css.scss',
+      'source.js',
+      'source.ruby',
+      'source.yaml',
+      'text.html.basic',
+      'text.html.markdown'
+    ];
+
+    // The other direction of the same trap. A stub for a scope stock VS Code does not register keeps
+    // a rule alive in the snapshots that every real editor drops - which is how the `sass:` and `erb:`
+    // regions stayed green while an editor without those extensions read their headers as tag names.
+    test('should stub only the scopes stock VS Code registers', () => {
+      const harness = readJson('syntaxes', 'fixtures', 'grammar-test.config.json') as {
+        contributes: { grammars: { scopeName: string }[] };
+      };
+      const contributed = new Set(manifest.contributes.grammars.map((grammar: { scopeName: string }) => grammar.scopeName));
+      const stubbed = harness.contributes.grammars.map((grammar) => grammar.scopeName).filter((scope) => !contributed.has(scope));
+      assert.deepStrictEqual(stubbed.sort(), STOCK_SCOPES);
+    });
+
+    // vscode-textmate drops a begin/end rule whose every pattern includes a grammar that is not
+    // registered, and with it the region: the body is then read as Slim, and an `erb:` body's `%>`
+    // opens a Ruby %-literal that runs to the end of the file. A rule survives on one pattern that
+    // needs nothing from outside.
+    test('should keep every filter rule alive without third-party grammars', () => {
+      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as { patterns: { begin?: string; patterns?: { include?: string }[] }[] };
+      const stock = new Set(STOCK_SCOPES);
+      for (const rule of grammar.patterns) {
+        if (rule.begin === undefined || rule.patterns === undefined) {
+          continue;
+        }
+        const survives = rule.patterns.some(
+          (pattern) => pattern.include === undefined || pattern.include.startsWith('#') || stock.has(pattern.include)
+        );
+        assert.ok(survives, `the rule beginning ${rule.begin} has only third-party includes and vanishes in stock VS Code`);
+      }
+    });
+
+    /**
+     * An `end` is only tried while its own rule is on top of the rule stack. A construct another
+     * grammar leaves open - a `/*`, a template literal, a `#{` still being typed - sits above it, so
+     * the region never ends and the rest of the file is coloured as that construct. `while` is asked
+     * of every line whatever is open, and pops it all.
+     *
+     * Which is why this asks about the rules that hand their body to other patterns. The `/` and
+     * `/!` comments keep an `end`: they hold no patterns, and the one thing that reaches into them
+     * anyway - the interpolation injection - is excluded from them by its selector, which the next
+     * test pins.
+     */
+    test('should bound an indented body by while wherever something can be left open in it', () => {
+      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as {
+        patterns: { begin?: string; end?: string; while?: string; patterns?: unknown[] }[];
+      };
+      const indented = grammar.patterns.filter((rule) => rule.begin?.startsWith('^(\\s*)') === true && rule.patterns !== undefined);
+      // The nine filters and the text block. A rule written with another prefix would be missed, so
+      // the count says which rules the assertions below were actually made about.
+      assert.strictEqual(indented.length, 10, 'the grammar has changed shape');
+      for (const rule of indented) {
+        assert.strictEqual(rule.end, undefined, `the rule beginning ${rule.begin} ends on a pattern`);
+        assert.strictEqual(rule.while, '^(?=\\1\\s|\\s*$)', `the rule beginning ${rule.begin}`);
+      }
+    });
+
+    /**
+     * A line of HTML is one line of Slim, and the HTML grammar can leave a tag open across lines,
+     * so this rule needs the same treatment with a `while` that can never match: it is asked at the
+     * start of the next line, fails, and pops the rule and whatever the HTML grammar stacked on it.
+     *
+     * The neighbouring single-line rules keep their `end` deliberately. `^\s*(?=-)` and `(?==+)`
+     * hold `rubyline`, which is meant to span lines when the Ruby ends in a comma or a backslash;
+     * bounding them to one line was measured to break exactly that.
+     */
+    test('should bound a line of HTML to that line', () => {
+      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as { patterns: { begin?: string; end?: string; while?: string }[] };
+      const html = grammar.patterns.filter((rule) => rule.begin === '(?=<[\\w\\d\\:]+)');
+      assert.strictEqual(html.length, 1, 'the grammar has changed shape');
+      assert.strictEqual(html[0]?.end, undefined, 'the HTML line rule ends on a pattern');
+      assert.strictEqual(html[0]?.while, '(?!)', 'the HTML line rule is not bounded to its line');
+      for (const begin of ['^\\s*(?=-)', '(?==+)']) {
+        const rule = grammar.patterns.find((candidate) => candidate.begin === begin);
+        assert.strictEqual(rule?.end, '$', `the rule beginning ${begin} no longer ends at the line, which rubyline needs`);
+      }
+    });
+
+    // An injection applies at every level of the scope stack, so it reaches inside a rule that has
+    // no patterns of its own. Without `-comment` an unterminated `#{` under `/` or `/!` opens a
+    // Ruby region that outlives the comment and colours the rest of the file.
+    test('should keep the interpolation injection out of comments', () => {
+      const injection = readJson('syntaxes', 'slim-interpolation.injection.json') as { injectionSelector: string };
+      assert.ok(
+        injection.injectionSelector.split(/\s+/).includes('-comment'),
+        `the selector ${injection.injectionSelector} no longer excludes comments, which are bounded by end`
+      );
+    });
+
+    // An interpolation belongs to the line it is written on. Both rules need the bound: while a `{`
+    // inside the interpolation is open, `nested_braces` is the rule on top and the outer end is
+    // never tried, so bounding only the outer one leaves `p x #{ {a: 1` running to the end of file.
+    test('should end an interpolation at the end of its line', () => {
+      const injection = readJson('syntaxes', 'slim-interpolation.injection.json') as {
+        patterns: { begin?: string; end?: string }[];
+        repository: Record<string, { begin?: string; end?: string }>;
+      };
+      const regions = [...injection.patterns, ...Object.values(injection.repository)].filter((rule) => rule.begin !== undefined);
+      assert.ok(regions.length >= 2, 'the injection no longer opens a region for the interpolation and one for its braces');
+      for (const rule of regions) {
+        assert.strictEqual(rule.end, '\\}|$', `the rule beginning ${rule.begin} runs past its line`);
+      }
+      // The vendored rule reads `#{` too, in the one place the injection's selector keeps it out.
+      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as { repository: Record<string, { end?: string }> };
+      assert.strictEqual(grammar.repository['embedded-ruby']?.end, '\\}{1,2}|$', 'the vendored interpolation rule runs past its line');
+    });
+
+    /**
+     * Slim strips a line before testing it for a continuation, so `[1, ` with a trailing space
+     * carries onto the next line and the grammar has to agree. The pattern is pinned as a string
+     * because one backslash too few writes `[^,\` plus the letter `s`, which stops ending a Ruby
+     * line that happens to end in an `s` - and no fixture would catch that.
+     */
+    test('should end a Ruby line past the whitespace after its last character', () => {
+      const grammar = readJson('syntaxes', 'slim.tmLanguage.json') as {
+        repository: Record<string, { end?: string; patterns?: { match?: string }[] }>;
+      };
+      const rubyline = grammar.repository.rubyline;
+      assert.strictEqual(
+        rubyline?.end,
+        '(do\\s*\\n$)|(?<=[^,\\\\\\s])(?=[ \\t]*$)',
+        'the end no longer asks about the last character with only spaces and tabs behind it'
+      );
+      // That end is unreachable if a pattern inside the rule consumes those spaces first.
+      assert.strictEqual(rubyline?.patterns?.[0]?.match, '#.*?(?=[ \\t]*$)', 'the Ruby comment pattern reaches the end of the line');
+    });
+
+    // The fixture's whole point is the space after a continuation marker, which an editor that
+    // trims trailing whitespace removes without a word - leaving a snapshot that agrees with
+    // itself and tests nothing. .editorconfig asks editors not to; this notices when one did.
+    test('should keep the trailing whitespace the multi-line Ruby fixture is made of', () => {
+      const fixture = fs.readFileSync(path.join(ROOT, 'syntaxes', 'fixtures', 'multiline-ruby.slim'), 'utf8').split('\n');
+      for (const marker of [',', '\\', '# note']) {
+        const padded = fixture.some((line) => line.endsWith(`${marker} `) || line.endsWith(`${marker}\t`));
+        assert.ok(padded, `no line ends in \`${marker}\` and whitespace any more, so the case it stands for is untested`);
+      }
+    });
   });
 
   // Replaces the inline node -e in .github/workflows/lint.yml, which hardcoded the version string.

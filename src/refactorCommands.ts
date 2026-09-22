@@ -9,7 +9,7 @@ import * as vscode from 'vscode';
 import { eolOf, snapshotOf, viewsContextOf } from './documentSnapshot';
 import type { Logger } from './logger';
 import type { FsDeps } from './pure/fsWalk';
-import { indentUnit, type LineRange, normalizeSelection, type SelectionInput } from './pure/lineRange';
+import { indentUnit, type LineRange, linesOf, mixesIndentation, normalizeSelection, type SelectionInput } from './pure/lineRange';
 import { buildPartialExtraction, isSubmittablePartialName, suggestPartialName, validatePartialName } from './pure/partialExtraction';
 import type { DocumentSnapshot, Eol } from './pure/textModel';
 import { buildBlockWrap, buildConditionalWrap, type WrapSpec } from './pure/wrapBlock';
@@ -42,6 +42,15 @@ function selectionOf(editor: vscode.TextEditor): SelectionInput {
   return { startLine: start.line, startCharacter: start.character, endLine: end.line, endCharacter: end.character };
 }
 
+/** Says so and answers true when the lines cannot be re-indented without changing how they nest. */
+function declinesMixedIndentation(range: LineRange, snapshot: DocumentSnapshot): boolean {
+  if (!mixesIndentation(linesOf(range, snapshot))) {
+    return false;
+  }
+  void vscode.window.showInformationMessage('Slim: these lines mix tabs and spaces for indentation, so they cannot be re-indented safely.');
+  return true;
+}
+
 /**
  * The indentation unit comes from the editor and nowhere else.
  *
@@ -61,6 +70,9 @@ async function wrapSelection(editor: vscode.TextEditor, build: WrapBuilder): Pro
   const range = normalizeSelection(selectionOf(editor), snapshot);
   if (range === null) {
     void vscode.window.showInformationMessage('Slim: select the lines to wrap first.');
+    return;
+  }
+  if (declinesMixedIndentation(range, snapshot)) {
     return;
   }
   const spec = build(range, snapshot, unitOf(editor), eolOf(document));
@@ -92,6 +104,9 @@ export async function splitToPartial(editor: vscode.TextEditor, deps: RefactorCo
   const range = normalizeSelection(selectionOf(editor), snapshot);
   if (range === null) {
     void vscode.window.showInformationMessage('Slim: select the lines to extract first.');
+    return;
+  }
+  if (declinesMixedIndentation(range, snapshot)) {
     return;
   }
 

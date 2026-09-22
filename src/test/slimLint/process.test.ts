@@ -1,4 +1,7 @@
 import * as assert from 'node:assert';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import type { CancellationLike, SpawnRequest } from '../../slimLint/process';
 import { createProcessRunner, type ProcessRunnerDeps } from '../../slimLint/process';
 
@@ -134,6 +137,123 @@ suite('slimLint/process Test Suite', () => {
       const cancellation = token();
       const promise = runner().run(request('setTimeout(()=>{},30000)'), cancellation);
       setTimeout(() => cancellation.cancel(), 50);
+      const result = await promise;
+      assert.ok(!result.ok);
+      assert.strictEqual(result.reason, 'cancelled');
+    });
+
+    // Nothing here can see the teardown running once rather than twice; what it pins is that a
+    // second cancellation is answered like the first.
+    test('should still answer cancelled when cancelled twice', async () => {
+      const cancellation = token();
+      const promise = runner().run(request('setTimeout(()=>{},30000)'), cancellation);
+      setTimeout(() => {
+        cancellation.cancel();
+        cancellation.cancel();
+      }, 50);
+      const result = await promise;
+      assert.ok(!result.ok);
+      assert.strictEqual(result.reason, 'cancelled');
+    });
+
+    // An executablePath naming a wrapper script that does not `exec` - `cd app && bundle exec
+    // slim-lint "$@"`, a docker wrapper - leaves slim-lint as a grandchild holding the stdio pipes.
+    // Killing the wrapper does not close them, and a promise waiting for 'close' keeps its
+    // concurrency slot for as long as the grandchild lives: four of those and nothing lints at all.
+    test('should settle a timed out run whose grandchild still holds the pipes', async () => {
+      const grandchild = 'setTimeout(()=>{},8000)';
+      const wrapper = `require("child_process").spawn(process.execPath,["-e",${JSON.stringify(grandchild)}],{stdio:"inherit"});setTimeout(()=>{},30000)`;
+      const started = Date.now();
+      const result = await runner().run(request(wrapper, { timeoutMs: 500 }));
+      assert.ok(!result.ok);
+      assert.strictEqual(result.reason, 'timeout');
+      assert.ok(Date.now() - started < 5000, `settled after ${Date.now() - started}ms, which is the grandchild's lifetime`);
+    });
+
+    // Settling is not the same as stopping. The run above is over once the wrapper exits, but the
+    // grandchild - the Ruby process that just ran out of time - would go on burning a core on the
+    // same document unless the signal reaches the wrapper's whole process group.
+    test('should take a grandchild down with the wrapper it outlives', async function () {
+      if (process.platform === 'win32') {
+        // taskkill /T already walks the tree there, and this wrapper shape is POSIX's.
+        this.skip();
+      }
+      const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'slim-group-'));
+      const proof = path.join(scratch, 'alive');
+      try {
+        // A survivor says so by itself: probing its pid instead races with whoever reaps it. It sits
+        // out SIGTERM, because the wrapper's exit settles the run and with it the kill timer - so
+        // the SIGKILL that ends this one has to come at that moment or never.
+        const grandchild = `process.on("SIGTERM",()=>{}); process.stderr.write(String(process.pid)); setTimeout(()=>require("fs").writeFileSync(${JSON.stringify(proof)},"x"),2500); setTimeout(()=>{},20000)`;
+        const wrapper = `require("child_process").spawn(process.execPath,["-e",${JSON.stringify(grandchild)}],{stdio:"inherit"});setTimeout(()=>{},20000)`;
+        // Long enough for the wrapper to have spawned: a kill that lands first proves nothing.
+        const result = await runner({ killGraceMs: 500 }).run(request(wrapper, { timeoutMs: 1500 }));
+        assert.ok(!result.ok);
+        assert.strictEqual(result.reason, 'timeout');
+        assert.ok(Number(result.stderr) > 0, `the grandchild must have started, got ${JSON.stringify(result.stderr)}`);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        assert.ok(!fs.existsSync(proof), 'the grandchild lived on to write its proof');
+      } finally {
+        fs.rmSync(scratch, { recursive: true, force: true });
+      }
+    });
+
+    // What the group signal cannot reach: a descendant that left the group (its own `setsid`). The
+    // group is empty by then and the signal has nobody to go to, which must not be an error.
+    test('should fall back to the child alone once the group is gone', async function () {
+      if (process.platform === 'win32') {
+        this.skip();
+      }
+      const escaped = 'setTimeout(()=>{},2500)';
+      const wrapper = `require("child_process").spawn(process.execPath,["-e",${JSON.stringify(escaped)}],{stdio:"inherit",detached:true})`;
+      const result = await runner({ killGraceMs: 200 }).run(request(wrapper, { timeoutMs: 1000 }));
+      assert.ok(!result.ok);
+      assert.strictEqual(result.reason, 'timeout');
+    });
+
+    // A timeout and a cancellation can both arrive for one run: the editor cancels while the child is
+    // still inside its grace period. A kill timer left armed would fire after the run has settled -
+    // at a process group that, by then, may be somebody else's.
+    test('should not signal anything once the run has settled', async function () {
+      if (process.platform === 'win32') {
+        this.skip();
+      }
+      const signalled: string[] = [];
+      let settled = false;
+      const kill = process.kill;
+      process.kill = ((pid: number, signal?: string | number): true => {
+        if (settled) {
+          signalled.push(`${pid} ${String(signal)}`);
+        }
+        return kill.call(process, pid, signal);
+      }) as typeof process.kill;
+      try {
+        const cancellation = token();
+        // Outlives SIGTERM for a moment, so that the cancellation lands between the two signals.
+        const lingering = 'process.on("SIGTERM",()=>setTimeout(()=>process.exit(0),300)); setTimeout(()=>{},30000)';
+        const promise = runner({ killGraceMs: 600 }).run(request(lingering, { timeoutMs: 400 }), cancellation);
+        setTimeout(() => cancellation.cancel(), 500);
+        await promise;
+        settled = true;
+        await new Promise((resolve) => setTimeout(resolve, 900));
+      } finally {
+        process.kill = kill;
+      }
+      assert.deepStrictEqual(signalled, []);
+    });
+
+    // A child slow to die on SIGTERM is still alive when the timeout comes due, and answering
+    // `timeout` for it records a back-off against a document whose run was merely superseded: the
+    // next save is then skipped as "timed out before" with nothing having timed out.
+    test('should keep calling a cancelled run cancelled when the timeout expires while it dies', async function () {
+      if (process.platform === 'win32') {
+        // taskkill /F has no grace period for the timeout to land in.
+        this.skip();
+      }
+      const cancellation = token();
+      const ignoresSigterm = 'process.on("SIGTERM",()=>{});setTimeout(()=>{},30000)';
+      const promise = runner({ killGraceMs: 1500 }).run(request(ignoresSigterm, { timeoutMs: 1000 }), cancellation);
+      setTimeout(() => cancellation.cancel(), 500);
       const result = await promise;
       assert.ok(!result.ok);
       assert.strictEqual(result.reason, 'cancelled');

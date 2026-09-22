@@ -163,7 +163,7 @@
           "name": "punctuation.section.embedded.ruby"
         }
       },
-      "end": "\\}{1,2}",
+      "end": "\\}{1,2}|$",
       "patterns": [
         {
           "include": "source.ruby"
@@ -197,13 +197,13 @@
       ]
     },
     "rubyline": {
-      "end": "(do\\s*\\n$)|(?<!\\\\|,|,\\n|\\\\\\n)$",
+      "end": "(do\\s*\\n$)|(?<=[^,\\\\\\s])(?=[ \\t]*$)",
       "begin": "(==|=)([<>']{1,2})?|-",
       "contentName": "source.ruby.embedded.slim",
       "patterns": [
         {
           "comment": "Hack to let ruby comments work in this context properly",
-          "match": "#.*$",
+          "match": "#.*?(?=[ \\t]*$)",
           "name": "comment.line.number-sign.ruby"
         },
         {
@@ -231,7 +231,7 @@
   "patterns": [
     {
       "begin": "^(\\s*)(ruby):$",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "patterns": [
         {
           "include": "source.ruby"
@@ -246,7 +246,7 @@
     },
     {
       "begin": "^(\\s*)(javascript):$",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "patterns": [
         {
           "include": "source.js"
@@ -281,7 +281,7 @@
     },
     {
       "begin": "^(\\s*)(coffee):$",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "patterns": [
         {
           "include": "source.coffee"
@@ -296,7 +296,7 @@
     },
     {
       "begin": "^(\\s*)(markdown):$",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "patterns": [
         {
           "include": "text.html.markdown"
@@ -311,7 +311,7 @@
     },
     {
       "begin": "^(\\s*)(css):$",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "patterns": [
         {
           "include": "source.css"
@@ -326,10 +326,13 @@
     },
     {
       "begin": "^(\\s*)(sass):$",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "patterns": [
         {
           "include": "source.sass"
+        },
+        {
+          "match": "(?!)"
         }
       ],
       "name": "text.sass.filter.slim",
@@ -341,7 +344,7 @@
     },
     {
       "begin": "^(\\s*)(scss):$",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "patterns": [
         {
           "include": "source.css.scss"
@@ -356,7 +359,7 @@
     },
     {
       "begin": "^(\\s*)(less):$",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "patterns": [
         {
           "include": "source.css.less"
@@ -371,10 +374,36 @@
     },
     {
       "begin": "^(\\s*)(erb):$",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "patterns": [
         {
-          "include": "text.html.erb"
+          "begin": "<%#",
+          "end": "%>",
+          "name": "comment.block.erb.slim"
+        },
+        {
+          "begin": "<%(?!%)[-=]?",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.begin.erb.slim"
+            }
+          },
+          "end": "-?%>",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.end.erb.slim"
+            }
+          },
+          "contentName": "source.ruby.embedded.erb.slim",
+          "patterns": [
+            {
+              "match": "#.*?(?=-?%>)",
+              "name": "comment.line.number-sign.ruby"
+            },
+            {
+              "include": "source.ruby"
+            }
+          ]
         }
       ],
       "name": "text.erb.filter.slim",
@@ -452,7 +481,7 @@
     },
     {
       "begin": "^(\\s*)(\\||')\\s*",
-      "end": "^(?!(\\1\\s)|\\s*$)",
+      "while": "^(?=\\1\\s|\\s*$)",
       "comment": "Verbatim text (can include HTML tags and copied lines)",
       "patterns": [
         {
@@ -562,7 +591,7 @@
     },
     {
       "begin": "(?=<[\\w\\d\\:]+)",
-      "end": "$|\\/\\>",
+      "while": "(?!)",
       "comment": "Inline and root-level HTML tags",
       "patterns": [
         {

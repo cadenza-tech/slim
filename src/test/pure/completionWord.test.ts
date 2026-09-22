@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { type CompletionWord, computeCompletionWord, computeReplaceLength } from '../../pure/completionWord';
+import { type CompletionWord, computeCompletionWord, computeReplaceLength, isScriptPosition } from '../../pure/completionWord';
 import { FAST_ENOUGH_MS, fastestOf } from '../support/timing';
 
 const OUTPUT_BODY = "= link_to('${1:name}')";
@@ -204,6 +204,22 @@ suite('pure/completionWord Test Suite', () => {
     test('should not offer a block body after a tag', () => {
       assert.strictEqual(applied('p= form_w', BLOCK_BODY), null);
       assert.strictEqual(applied('= form_w', BLOCK_BODY), BLOCK_BODY);
+    });
+  });
+
+  // The question partial navigation asks: is this identifier Ruby? Unlike computeCompletionWord it
+  // has no body to protect, so a marker carrying a whitespace modifier is as good as a plain one.
+  suite('isScriptPosition', () => {
+    test('should accept an identifier after any script marker', () => {
+      for (const prefix of ['= render', '== render', '- render', '=> render', '=<> render', "==' render", 'p= render', 'td => render']) {
+        assert.strictEqual(isScriptPosition(prefix), true, prefix);
+      }
+    });
+
+    test('should reject an identifier in text, after a tag modifier, or missing altogether', () => {
+      for (const prefix of ['render', 'p Please render', "' render", 'p> render', '= ', '']) {
+        assert.strictEqual(isScriptPosition(prefix), false, prefix);
+      }
     });
   });
 });

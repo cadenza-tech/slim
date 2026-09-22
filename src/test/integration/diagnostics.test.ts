@@ -73,3 +73,34 @@ suite('diagnostics missing executable Test Suite', () => {
     assert.ok(!seen[0]?.includes('/usr/bin/slim-lint'), 'must not name the re-resolved command');
   });
 });
+
+// The README sends users here from slim-lint's own `exclude:`, whose globs are relative to the
+// directory holding .slim-lint.yml. A string pattern in a DocumentFilter is matched against the
+// absolute path, so without resolving against the workspace folder only `**/`-led globs ever match.
+suite('diagnostics exclude Test Suite', () => {
+  async function runsWith(lintExclude: readonly string[]): Promise<number> {
+    const logger = new Logger();
+    const runner = stubLintRunner(() => ({ ok: true, outcome: { report: { offenses: [] } } }));
+    const excluding = config({ lintExclude });
+    const controller = new DiagnosticsController(runner, logger, () => excluding, new MissingExecutableNotice(logger, memento()));
+    const document = await openView('offenses.slim');
+
+    await controller.lint(document, excluding);
+
+    controller.dispose();
+    logger.dispose();
+    return runner.runs;
+  }
+
+  test('should skip a file matched by a pattern relative to the workspace folder', async () => {
+    assert.strictEqual(await runsWith(['app/**/offenses.slim']), 0);
+  });
+
+  test('should skip a file matched by a pattern that leads with a globstar', async () => {
+    assert.strictEqual(await runsWith(['**/offenses.slim']), 0);
+  });
+
+  test('should lint a file no pattern matches', async () => {
+    assert.strictEqual(await runsWith(['vendor/**']), 1);
+  });
+});

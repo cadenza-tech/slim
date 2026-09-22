@@ -21,7 +21,7 @@ const EXIT_USAGE = 64;
 const EXIT_OFFENSES = 65;
 /** slim-lint's own "no input" code: cli.rb returns 67, not sysexits' EX_NOINPUT of 66. */
 const EXIT_NO_INPUT = 67;
-/** EX_SOFTWARE: crashed. stderr carries a backtrace. */
+/** EX_SOFTWARE: crashed. stdout carries the backtrace: bin/slim-lint builds its logger on $stdout. */
 const EXIT_SOFTWARE = 70;
 /** EX_CONFIG: configuration error. */
 const EXIT_CONFIG = 78;

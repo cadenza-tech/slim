@@ -1,5 +1,14 @@
 import * as assert from 'node:assert';
-import { commonIndent, dedentLines, indentLines, indentUnit, linesOf, normalizeSelection, type SelectionInput } from '../../pure/lineRange';
+import {
+  commonIndent,
+  dedentLines,
+  indentLines,
+  indentUnit,
+  linesOf,
+  mixesIndentation,
+  normalizeSelection,
+  type SelectionInput
+} from '../../pure/lineRange';
 import type { DocumentSnapshot } from '../../pure/textModel';
 import { snapshotOfLines } from '../support/snapshot';
 
@@ -93,6 +102,136 @@ suite('pure/lineRange Test Suite', () => {
       assert.deepStrictEqual(normalizeSelection(whole(document, 0, 2), document), { startLine: 0, endLine: 4 });
     });
 
+    // `- else` sits at the opener's own indent, so indentation alone ends the block before it. Wrapping
+    // only the first branch re-binds the `else` to the new outer `- if` - valid Slim, different
+    // logic - and extracting it leaves an orphan `- else` behind `= render`.
+    test('should take every branch of a conditional under a caret on its opener', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '- elsif b', '  p y', '- else', '  p z', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 5 });
+    });
+
+    test('should take every `when` of a case written at its own indent', () => {
+      const document = snapshotOfLines(['- case x', '- when 1', '  p a', '- when 2', '  p b', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 4 });
+    });
+
+    test('should take a rescue and an ensure with their begin', () => {
+      const document = snapshotOfLines(['- begin', '  p a', '- rescue Foo', '  p b', '- ensure', '  p c', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 5 });
+    });
+
+    test('should not take a branch that belongs to something shallower than the selection', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '  p y', '- else', '  p z']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 1, endLine: 1 });
+    });
+
+    // The other end of the same construct. A selection that starts on a branch has left the opener
+    // it answers to outside: extracted, the partial begins with `- else` and Slim refuses to compile
+    // it; wrapped, the `- if` above is left with no `else` and the new one with no `if`.
+    test('should reach back to the if when the selection starts on its else', () => {
+      const document = snapshotOfLines(['div', '  - if a', '    p x', '  - else', '    p y', '  p after']);
+      assert.deepStrictEqual(normalizeSelection(caret(3), document), { startLine: 1, endLine: 4 });
+      assert.deepStrictEqual(normalizeSelection(whole(document, 3, 4), document), { startLine: 1, endLine: 4 });
+    });
+
+    test('should reach back past earlier branches to the opener', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '- elsif b', '  p y', '- else', '  p z', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(4), document), { startLine: 0, endLine: 5 });
+    });
+
+    test('should reach back to the begin from its rescue', () => {
+      const document = snapshotOfLines(['- begin', '  p a', '- rescue Foo', '  p b', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(2), document), { startLine: 0, endLine: 3 });
+    });
+
+    // Slim takes `- when` one level under `- case` as well as beside it, and once it has, the `- else`
+    // of that case sits at the nested level too. The opener is then shallower than the branch.
+    test('should reach back to the case from a when or an else nested under it', () => {
+      const document = snapshotOfLines(['- case a', '  - when 1', '    p one', '  - else', '    p other', 'p after']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 0, endLine: 4 });
+      assert.deepStrictEqual(normalizeSelection(caret(3), document), { startLine: 0, endLine: 4 });
+    });
+
+    // Slim compiles `- y = case x` with its `- when` beside it, which the same-indent rule already
+    // reaches; nested under it the template does not compile at all, so that shape is not chased.
+    test('should reach back to a case that is assigned', () => {
+      const document = snapshotOfLines(['- y = case x', '- when 1', '  - z = 1', '- else', '  - z = 0', 'p after']);
+      assert.deepStrictEqual(normalizeSelection(caret(3), document), { startLine: 0, endLine: 4 });
+    });
+
+    // Only `case` lets its branches sit a level down. An `- else` under anything else is not the
+    // document it looks like, and nothing is moved.
+    test('should not reach for a shallower line that is not a case', () => {
+      const document = snapshotOfLines(['- if a', '  - else', '    p y']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 1, endLine: 2 });
+    });
+
+    // `case`/`in` nests the same way `case`/`when` does: Slim compiles `- in` a level under `- case`.
+    test('should reach back to the case from an in nested under it', () => {
+      const document = snapshotOfLines(['- case a', '  - in Integer', '    p int', '  - else', '    p o', 'p after']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 0, endLine: 4 });
+    });
+
+    // Slim drops a code comment while parsing, so one between a branch and the line it answers to
+    // changes nothing - and the disable quick fix writes exactly that shape, around an if-body. It
+    // is neither the opener nor the end of the statement. `/!` is rendered, and Slim refuses an
+    // `- else` after one, so only the code comment is looked past.
+    test('should look past a code comment for the opener and for the next branch', () => {
+      const document = snapshotOfLines([
+        '- if a',
+        '  / slim-lint:disable LineLength',
+        '  p x',
+        '/ slim-lint:enable LineLength',
+        '  swallowed by the comment',
+        '- else',
+        '  p y',
+        'footer'
+      ]);
+      assert.deepStrictEqual(normalizeSelection(caret(5), document), { startLine: 0, endLine: 6 });
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 6 });
+    });
+
+    test('should not take a code comment that no branch follows', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '/ about the footer', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 1 });
+      const trailing = snapshotOfLines(['div', '  - if a', '    p x', '  / the last word', '', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), trailing), { startLine: 1, endLine: 2 });
+      const last = snapshotOfLines(['- if a', '  p x', '/ nothing after this']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), last), { startLine: 0, endLine: 1 });
+    });
+
+    test('should not look past an html comment, which Slim does not allow there', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '/! rendered', '- else', '  p y']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 1 });
+    });
+
+    test('should look past blank lines for the opener', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '', '- else', '  p y']);
+      assert.deepStrictEqual(normalizeSelection(caret(3), document), { startLine: 0, endLine: 4 });
+    });
+
+    // Nothing above it to answer to: the document is not what it looks like, and nothing is moved.
+    test('should leave a branch that opens the document where it is', () => {
+      const document = snapshotOfLines(['- else', '  p y']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 1 });
+    });
+
+    test('should leave a selection that does not start on a branch where it starts', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '- else', '  p y']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 1, endLine: 1 });
+    });
+
+    test('should not read a branch keyword out of a longer word', () => {
+      const document = snapshotOfLines(['- if a', '  p x', '- elsewhere = 1', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(0), document), { startLine: 0, endLine: 1 });
+    });
+
+    // Slim counts a tab as running to the next multiple of four columns, so a file may mix the two.
+    test('should measure nesting in columns when tabs and spaces are mixed', () => {
+      const document = snapshotOfLines(['div', '    section', '\t\timg src="a"', 'footer']);
+      assert.deepStrictEqual(normalizeSelection(caret(1), document), { startLine: 1, endLine: 2 });
+    });
+
     test('should trim blank lines from both ends', () => {
       const document = snapshotOfLines(['', '  p a', '  p b', '', '']);
       assert.deepStrictEqual(normalizeSelection(whole(document, 0, 4), document), { startLine: 1, endLine: 2 });
@@ -157,6 +296,15 @@ suite('pure/lineRange Test Suite', () => {
       assert.strictEqual(commonIndent(['  p a', '', '  p b']), '  ');
     });
 
+    // Only leading whitespace counts, and a blank line indents nothing.
+    test('should say when the lines mix tabs and spaces for indentation', () => {
+      assert.strictEqual(mixesIndentation(['  a', '\tb']), true);
+      assert.strictEqual(mixesIndentation([' \ta']), true);
+      assert.strictEqual(mixesIndentation(['  a', '    b', '', ' \t ']), false);
+      assert.strictEqual(mixesIndentation(['\ta', '\t\tb', 'c \t d']), false);
+      assert.strictEqual(mixesIndentation([]), false);
+    });
+
     // Nothing is safe to assume when tabs and spaces are mixed, so nothing is claimed.
     test('should give up on mixed tabs and spaces', () => {
       assert.strictEqual(commonIndent(['\tp a', '  p b']), '');
@@ -198,7 +346,7 @@ suite('pure/lineRange Test Suite', () => {
     });
   });
 
-  // isBlankText counts space and tab only, matching VS Code's firstNonWhitespaceCharacterIndex.
+  // isBlankText counts space and tab only, matching a LineSnapshot's firstNonWhitespaceCharacterIndex.
   // Under the old trim() definition a NBSP line was blank *and* reported indent 0, which made its
   // indent width infinite for a line that renders as content.
   suite('exotic whitespace', () => {

@@ -1,0 +1,86 @@
+>/ Every filter below leaves a construct of its embedded grammar open. The line after it must be a
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>/ Slim tag again, and a filter nested under a tag must hand back to its sibling.
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>javascript:
+#^^^^^^^^^^ text.slim source.js.filter.slim constant.language.name.javascript.filter.slim
+#          ^ text.slim source.js.filter.slim
+>  const a = LEFT_OPEN_BY_THE_STUB
+#^^^^^^^^^^^^ text.slim source.js.filter.slim
+#            ^^^^^^^^^^^^^^^^^^^^^ text.slim source.js.filter.slim meta.left-open.stub
+>p after javascript
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^ text.slim
+>coffee:
+#^^^^^^ text.slim text.coffeescript.filter.slim constant.language.name.coffeescript.filter.slim
+#      ^ text.slim text.coffeescript.filter.slim
+>  a = LEFT_OPEN_BY_THE_STUB
+#^^^^^^ text.slim text.coffeescript.filter.slim
+#      ^^^^^^^^^^^^^^^^^^^^^ text.slim text.coffeescript.filter.slim meta.left-open.stub
+>p after coffee
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^ text.slim
+>markdown:
+#^^^^^^^^ text.slim text.markdown.filter.slim constant.language.name.markdown.filter.slim
+#        ^ text.slim text.markdown.filter.slim
+>  LEFT_OPEN_BY_THE_STUB
+#^^ text.slim text.markdown.filter.slim
+#  ^^^^^^^^^^^^^^^^^^^^^ text.slim text.markdown.filter.slim meta.left-open.stub
+>
+>  still markdown
+#^^^^^^^^^^^^^^^^^ text.slim text.markdown.filter.slim meta.left-open.stub
+>p after markdown
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^ text.slim
+>css:
+#^^^ text.slim text.css.filter.slim constant.language.name.css.filter.slim
+#   ^ text.slim text.css.filter.slim
+>  .a { LEFT_OPEN_BY_THE_STUB
+#^^^^^^^ text.slim text.css.filter.slim
+#       ^^^^^^^^^^^^^^^^^^^^^ text.slim text.css.filter.slim meta.left-open.stub
+>p after css
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^ text.slim
+>scss:
+#^^^^ text.slim text.scss.filter.slim constant.language.name.scss.filter.slim
+#    ^ text.slim text.scss.filter.slim
+>  .a { LEFT_OPEN_BY_THE_STUB
+#^^^^^^^ text.slim text.scss.filter.slim
+#       ^^^^^^^^^^^^^^^^^^^^^ text.slim text.scss.filter.slim meta.left-open.stub
+>p after scss
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^ text.slim
+>less:
+#^^^^ text.slim text.less.filter.slim constant.language.name.less.filter.slim
+#    ^ text.slim text.less.filter.slim
+>  .a { LEFT_OPEN_BY_THE_STUB
+#^^^^^^^ text.slim text.less.filter.slim
+#       ^^^^^^^^^^^^^^^^^^^^^ text.slim text.less.filter.slim meta.left-open.stub
+>p after less
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^ text.slim
+>ruby:
+#^^^^ text.slim text.ruby.filter.slim constant.language.name.ruby.filter.slim
+#    ^ text.slim text.ruby.filter.slim
+>  a = LEFT_OPEN_BY_THE_STUB
+#^^^^^^ text.slim text.ruby.filter.slim
+#      ^^^^^^^^^^^^^^^^^^^^^ text.slim text.ruby.filter.slim meta.left-open.stub
+>p after ruby
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^ text.slim
+>div
+#^^^ text.slim meta.tag entity.name.tag.slim
+>  javascript:
+#^^ text.slim source.js.filter.slim
+#  ^^^^^^^^^^ text.slim source.js.filter.slim constant.language.name.javascript.filter.slim
+#            ^ text.slim source.js.filter.slim
+>    const b = LEFT_OPEN_BY_THE_STUB
+#^^^^^^^^^^^^^^ text.slim source.js.filter.slim
+#              ^^^^^^^^^^^^^^^^^^^^^ text.slim source.js.filter.slim meta.left-open.stub
+>  p after a nested filter
+#^^ text.slim meta.tag
+#  ^ text.slim meta.tag entity.name.tag.slim
+#   ^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>

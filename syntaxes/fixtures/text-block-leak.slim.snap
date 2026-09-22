@@ -1,0 +1,47 @@
+>/ A text block hands its body to HTML and to Ruby, so it can be left open the way a filter can.
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>/ Every line below that is not indented under one must be a Slim line again. The sentinel word is
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>/ what the HTML grammar leaves open for real - a tag, a comment, a <script>; the `#{` needs no stub.
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>| hello #{name
+#^^ text.slim
+#  ^^^^^^ text.slim
+#        ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#          ^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
+>p after an interpolation being typed
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>' quoted #{other
+#^^ text.slim
+#  ^^^^^^^ text.slim
+#         ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#           ^^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
+>p after a quoted text block
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>| <p LEFT_OPEN_BY_THE_STUB
+#^^ text.slim
+#  ^^^ text.slim
+#     ^^^^^^^^^^^^^^^^^^^^^ text.slim meta.left-open.stub
+>p after an open tag
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^ text.slim
+>div
+#^^^ text.slim meta.tag entity.name.tag.slim
+>  | nested #{x
+#^^^^ text.slim
+#    ^^^^^^^ text.slim
+#           ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#             ^ text.slim meta.embedded.line.ruby.slim source.ruby
+>  p sibling of the text block
+#^^ text.slim meta.tag
+#  ^ text.slim meta.tag entity.name.tag.slim
+#   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>p after a nested text block
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>

@@ -1,4 +1,5 @@
-// Works out what a Rails snippet completion should replace, and whether it belongs there at all.
+// Works out what a snippet that opens with a Slim code marker - a Rails view helper, a control-flow
+// one - should replace, and whether it belongs there at all.
 //
 // Three things go wrong without this.
 //
@@ -218,7 +219,7 @@ function marker(head: string, from: number, atLineStart: boolean): Pick<Completi
   return { marker: text, markerLength: text.length, markerAtLineStart: atLineStart };
 }
 
-/** Returns null wherever a Rails helper cannot go. */
+/** Returns null wherever a line of Ruby cannot start. */
 export function computeCompletionWord(linePrefix: string): CompletionWord | null {
   const length = identifierLength(linePrefix);
   if (length === 0) {
@@ -226,6 +227,31 @@ export function computeCompletionWord(linePrefix: string): CompletionWord | null
   }
   const head = classifyHead(linePrefix.slice(0, linePrefix.length - length));
   return head === null ? null : { identifierLength: length, ...head };
+}
+
+/**
+ * Whether the identifier `linePrefix` ends in is written as Ruby: after a `-`, or after an `=` with
+ * or without its whitespace modifiers.
+ *
+ * computeCompletionWord cannot answer this. Its null for `=>` and `='` means "a snippet body would
+ * overwrite this marker", which is a fact about the Rails snippets rather than about the position -
+ * and a caller that only reads what follows the marker, as partial navigation does, overwrites
+ * nothing.
+ */
+export function isScriptPosition(linePrefix: string): boolean {
+  const length = identifierLength(linePrefix);
+  if (length === 0) {
+    return false;
+  }
+  let end = linePrefix.length - length;
+  while (end > 0 && isSpaceCharacter(linePrefix[end - 1])) {
+    end--;
+  }
+  while (end > 0 && MARKER_MODIFIERS.has(linePrefix[end - 1] as string)) {
+    end--;
+  }
+  const head = classifyHead(linePrefix.slice(0, end));
+  return head !== null && head.markerLength > 0;
 }
 
 /**

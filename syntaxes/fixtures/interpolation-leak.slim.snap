@@ -1,0 +1,131 @@
+>/ An interpolation belongs to the line it is written on, so a `#{` still being typed must not take
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>/ the lines below it. The brace forms matter on their own: the rule that counts braces inside the
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>/ interpolation is a region of its own, and is what is open at the end of such a line.
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>p hello #{name
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^ text.slim
+#        ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#          ^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
+>p after an interpolation being typed
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>a title="x #{y
+#^ text.slim meta.tag entity.name.tag.slim
+# ^ text.slim
+#  ^^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#       ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#        ^^^ text.slim meta.attribute-with-value.slim
+#           ^^ text.slim meta.attribute-with-value.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#             ^ text.slim meta.attribute-with-value.slim meta.embedded.line.ruby.slim source.ruby
+>p after an attribute value
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>p hello #{
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^ text.slim
+#        ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+>p after a bare marker
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^ text.slim
+>p x #{ {a: 1
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^ text.slim
+#    ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#      ^ text.slim meta.embedded.line.ruby.slim source.ruby
+#       ^ text.slim meta.embedded.line.ruby.slim source.ruby
+#        ^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
+>p after an open brace
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^ text.slim
+>p x #{ {a: {b: 1
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^ text.slim
+#    ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#      ^ text.slim meta.embedded.line.ruby.slim source.ruby
+#       ^ text.slim meta.embedded.line.ruby.slim source.ruby
+#        ^^^ text.slim meta.embedded.line.ruby.slim source.ruby
+#           ^ text.slim meta.embedded.line.ruby.slim source.ruby
+#            ^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
+>p after two open braces
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>div
+#^^^ text.slim meta.tag entity.name.tag.slim
+>  p nested #{x
+#^^ text.slim meta.tag
+#  ^ text.slim meta.tag entity.name.tag.slim
+#   ^^^^^^^^ text.slim
+#           ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#             ^ text.slim meta.embedded.line.ruby.slim source.ruby
+>  p sibling of the interpolation
+#^^ text.slim meta.tag
+#  ^ text.slim meta.tag entity.name.tag.slim
+#   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>p after a nested interpolation
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>/ comment #{x
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^ text.slim comment.block.slim
+>p after a comment
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^ text.slim
+>/ A splat is the one place the interpolation injection is excluded from, so the vendored rule takes
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>/ the `#{` there. Slim rejects this line - the splat never closes - but it must not take the file.
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>div *{a: #{b |
+#^^^ text.slim meta.tag entity.name.tag.slim
+#   ^ text.slim meta.tag
+#    ^^ text.slim meta.tag source.ruby.embedded.slim punctuation.section.embedded.ruby
+#      ^^^ text.slim meta.tag source.ruby.embedded.slim
+#         ^^ text.slim meta.tag source.ruby.embedded.slim source.ruby.embedded.html punctuation.section.embedded.ruby
+#           ^^^ text.slim meta.tag source.ruby.embedded.slim source.ruby.embedded.html
+>p after a splat
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^ text.slim
+>p hello #{name} there
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^ text.slim
+#        ^^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#          ^^^^ text.slim meta.embedded.line.ruby.slim source.ruby
+#              ^ text.slim meta.embedded.line.ruby.slim punctuation.section.embedded.end.slim
+#               ^^^^^^^ text.slim
+>p after a complete interpolation
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>/ The cost of ending at the line: an attribute value does carry an unfinished interpolation onto
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>/ the next line for Slim, which renders this as title="x 3". The continuation reads as Slim here.
+#^ text.slim comment.block.slim comment.line.slash.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim comment.block.slim
+>a title="x #{1 +
+#^ text.slim meta.tag entity.name.tag.slim
+# ^ text.slim
+#  ^^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#       ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#        ^^^ text.slim meta.attribute-with-value.slim
+#           ^^ text.slim meta.attribute-with-value.slim meta.embedded.line.ruby.slim punctuation.section.embedded.begin.slim
+#             ^^^ text.slim meta.attribute-with-value.slim meta.embedded.line.ruby.slim source.ruby
+>2}" href="/"
+#^ text.slim meta.tag entity.name.tag.slim
+# ^ text.slim meta.tag
+#  ^^ text.slim
+#    ^^^^ text.slim meta.attribute-with-value.slim entity.other.attribute-name.event.slim
+#        ^ text.slim meta.attribute-with-value.slim punctuation.separator.key-value.html
+#         ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.begin.html
+#          ^ text.slim meta.attribute-with-value.slim string.quoted.double.html meta.toc-list.id.html
+#           ^ text.slim meta.attribute-with-value.slim string.quoted.double.html punctuation.definition.string.end.html
+>p after a multi-line attribute interpolation
+#^ text.slim meta.tag entity.name.tag.slim
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ text.slim
+>

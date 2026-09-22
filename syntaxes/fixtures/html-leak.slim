@@ -1,0 +1,14 @@
+/ A line of HTML is handed to the HTML grammar, which can be left open across lines the way a
+/ filter's grammar can - a tag, a comment, a <script>. The sentinel word stands for one of those.
+/ An HTML line is one line of Slim, so the line below it must be a Slim line again.
+<p LEFT_OPEN_BY_THE_STUB
+p after an open tag
+div
+  <span LEFT_OPEN_BY_THE_STUB
+  p sibling of the html
+p after a nested html line
+p inline <b LEFT_OPEN_BY_THE_STUB
+p after inline html
+/ Upstream also ended this rule at a `/>`, which handed the rest of the line back to Slim and read
+/ `= b` as Ruby. Slim renders it as the text it is, so the whole line is HTML.
+<div>a/> = b

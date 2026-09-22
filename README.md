@@ -23,7 +23,7 @@
 - `#{...}` interpolation highlighted as Ruby wherever it appears, including inside filters
 - Diagnostics from [slim-lint](https://github.com/sds/slim-lint), with each linter name linking to its documentation
 - Quick Fixes to disable a linter for a block with `/ slim-lint:disable` comments
-- Go to Definition and completion for the partial a `render` call names, resolved the way Rails resolves it
+- Go to Definition and completion for the partial a `render` call names
 - Selection refactorings: wrap in a conditional or a Ruby block, and extract to a new partial
 - Completion for the `data-*` attributes Turbo, Stimulus and Rails UJS define, both bare after the tag and inside `()` / `[]` / `{}` wrappers
 - Snippets for Slim control flow, filters, doctypes and comments
@@ -97,14 +97,25 @@ filesystem — a virtual workspace such as GitHub Repositories, a diff from the 
 untitled buffer. It is also off for a file opened on its own without a workspace folder, since there
 is then no directory to search upwards from. Set `"on"` in those cases.
 
-Two behaviours differ from the built-in Slim snippets, because a contributed snippet file cannot be
-switched off by a setting and these are therefore supplied by a completion provider instead:
+Two behaviours differ from the other built-in Slim snippets, because a contributed snippet file
+cannot be switched off by a setting and these are therefore supplied by a completion provider
+instead:
 
 - they do not appear in the **Insert Snippet** command
 - they do not expand with `editor.tabCompletion`
 
 They are suggested as you type like any other snippet, and honour
 `editor.snippetSuggestions: "none"`.
+
+The Slim control-flow snippets (`if`, `ifelse`, `unless`, `each`, `case`, `yield`, ...) come from the
+same provider and share those two differences, for a different reason: a contributed snippet replaces
+only the word you typed, so after a marker it would leave `- - if condition` behind. Supplied this way
+they work whether you type `if` or `- if`, whatever `slim.snippets.rails` says, and stay out of filter
+and text blocks, where `if` is JavaScript or prose.
+
+They are matched by the start of the word, so that they never stand in the way of the word-based
+suggestions for a tag you are typing: start `content_for` with `c`, not with `cf`. For the same reason
+triggering suggestions on an empty line lists none of them — type the first letter.
 
 ## Partials
 
@@ -113,8 +124,7 @@ They are suggested as you type like any other snippet, and honour
 nothing to configure and no Ruby process is involved — only file names are read, so both work in an
 untrusted workspace too.
 
-The name resolves the way Rails resolves it, against the `app/views` directory that contains the
-current file:
+The name is resolved against the `app/views` directory that contains the current file:
 
 | Written | Opens |
 | - | - |
@@ -123,6 +133,10 @@ current file:
 | `= render partial: 'shared/foo'` | the same as the first form |
 | `= render layout: 'shared/foo' do` | the same as the first form |
 
+A name without a slash is a best guess. Rails looks it up under the prefixes of whichever controller
+renders the view, which a file on its own does not say; beside the current file is where that is for a
+view in its controller's own directory, so it is tried first.
+
 `.slim` is preferred over `.erb`, and the current file's own format over `html`: from
 `index.turbo_stream.slim`, `= render 'shared/foo'` opens `_foo.turbo_stream.slim` when it exists and
 falls back to `_foo.html.slim` when it does not.
@@ -130,8 +144,11 @@ falls back to `_foo.html.slim` when it does not.
 `= render template: 'posts/index'` is deliberately not followed. A template resolves without the
 leading underscore, so treating it as a partial would point at a file that is not there.
 
-Completion offers a partial that sits beside the current file under its bare name, and everything else
-under its `app/views`-relative name, which is what Rails needs in each case. Turn it off with:
+Completion always inserts the `app/views`-relative name, also for a partial beside the current file:
+`render 'sidebar'` only resolves from a view in the rendering controller's own directory - from
+`shared/` or a layout it is a missing partial - while `render 'posts/sidebar'` resolves from anywhere.
+Typing just `side` still finds it, and until something is typed the partials beside the current file
+are listed first. Turn it off with:
 
 ```jsonc
 "slim.completions.partials": false
@@ -206,12 +223,12 @@ Linting a Slim file runs Ruby code from your workspace: `bundle exec` evaluates 
 
 ## Known Limitations
 
-- **`exclude:` in `.slim-lint.yml` is not applied.** Linting from the editor pipes the buffer through `--stdin-file-path`, which bypasses slim-lint's file finder — the stage that applies the top-level `exclude:` globs. Use `slim.lint.exclude` instead. Per-linter `include:` / `exclude:` are unaffected and still work.
+- **`exclude:` in `.slim-lint.yml` is not applied.** Linting from the editor pipes the buffer through `--stdin-file-path`, which bypasses slim-lint's file finder — the stage that applies the top-level `exclude:` globs. Use `slim.lint.exclude` instead: its globs are matched against the path relative to the workspace folder, so an `exclude:` entry written relative to the project root carries over as it is. Per-linter `include:` / `exclude:` are unaffected and still work.
 - **Diagnostics cover a whole line.** slim-lint reports a line number and no column.
 - **A file that times out is left alone until something changes.** Every run boots Ruby and RuboCop afresh, so once a run has exceeded `slim.slimLint.timeoutMs` on a document, saving it again would only spend the same time to be killed again. Automatic runs for that document are therefore paused until it gets smaller, `slim.slimLint.timeoutMs` is raised, or you run `Slim: Lint File` or `Slim: Restart Linter`. The output channel records it when it happens.
 - **This extension never writes to your configuration files.**
 - **Only `.slim-lint.yml` and `.rubocop.yml` are watched.** Changing either re-lints the Slim files you have open. A configuration reached some other way — a file named by `slim.slimLint.configPath`, or one pulled in by `inherits_from` — is still read on every run, but changing it does not refresh anything on its own until you edit a `.slim` file or run `Slim: Lint File`.
-- **The `erb:` and `sass:` filter bodies are highlighted only when a matching extension is installed.** The grammar hands them to the `text.html.erb` and `source.sass` scopes, which no VS Code built-in registers; without an ERB or indented-Sass extension those bodies simply stay uncoloured. The other filters map to scopes the built-in grammars provide.
+- **The `sass:` and `erb:` filter bodies are only partly highlighted.** VS Code has no built-in grammar for indented Sass, so a `sass:` body stays uncoloured unless a Sass extension is installed. In an `erb:` body the Ruby inside `<% %>` tags is highlighted and the markup around them is left plain, with or without an ERB extension: handing the body to an outside HTML grammar let a tag left open while typing colour the rest of the file. The other filters map to scopes the built-in grammars provide.
 - **`Slim: Split to Partial` adds no `locals:`.** Instance variables carry over on their own, but a selection using a block variable needs the argument adding by hand — deriving them means parsing the Ruby in the selection, and getting that wrong would silently change what the view renders. It also never overwrites: if a partial of that name already exists the command stops, and it needs a file saved on disk, unlike the two wrap commands which work in an untitled buffer too.
 - **A selection is interpreted by indentation alone.** With no selection the block under the cursor is used, and a selection whose last line still has children is extended to include them — otherwise raising it one level would detach them. Nothing understands filters, so wrapping the body of a `ruby:` or `javascript:` filter produces broken Ruby or JavaScript, and neither does anything understand multi-line Ruby, so a selection starting midway through a comma- or backslash-continued expression is not valid either.
 - **Partials are resolved against one `app/views`.** The one containing the current file, which means an engine's or a dummy app's is used when the file lives there. `prepend_view_path` and an engine's view path chain would need the application to be booted, so they are not followed.

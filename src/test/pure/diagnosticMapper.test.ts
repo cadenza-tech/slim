@@ -83,6 +83,40 @@ suite('pure/diagnosticMapper Test Suite', () => {
     assert.deepStrictEqual(mapOffenses([], snapshot('div')), []);
   });
 
+  // slim-lint's RuboCop linter builds its offense from RuboCop's line alone, so a cop that fires
+  // twice on one line - `= foo("a", "b")` under Style/StringLiterals - arrives as two entries that
+  // differ in nothing. Both would be drawn over the whole line, with the same message.
+  test('should show an offense reported twice only once', () => {
+    const twice = [offense({ line: 1, message: 'Style/StringLiterals: Prefer single-quoted strings.', linterName: 'RuboCop' })];
+    const specs = mapOffenses([...twice, ...twice], snapshot('= foo("a", "b")'));
+    assert.strictEqual(specs.length, 1);
+  });
+
+  // Two cops of one line are two findings. slim-lint names the linter `RuboCop` for both, so the
+  // message is the only thing telling them apart.
+  test('should keep two offenses that differ only in their message', () => {
+    const style = offense({ line: 1, message: 'Style/StringLiterals: Prefer single-quoted strings.', linterName: 'RuboCop' });
+    const layout = offense({ line: 1, message: 'Layout/SpaceInsideParens: Space inside parentheses detected.', linterName: 'RuboCop' });
+    assert.strictEqual(mapOffenses([style, layout], snapshot('= foo( "a" )')).length, 2);
+  });
+
+  // The severity and the linter are as much a part of what is drawn as the message is.
+  test('should keep offenses that differ in severity or linter', () => {
+    const base = { line: 1, message: 'm' } as const;
+    const specs = mapOffenses(
+      [offense({ ...base, severity: 'warning' }), offense({ ...base, severity: 'error' }), offense({ ...base, linterName: 'RuboCop' })],
+      snapshot('div')
+    );
+    assert.strictEqual(specs.length, 3);
+  });
+
+  // Two lines past the end of a short buffer clamp onto the same range, which is the range the
+  // panel draws: identical there means identical to the reader.
+  test('should treat offenses clamped onto one line as repeats', () => {
+    const specs = mapOffenses([offense({ line: 8 }), offense({ line: 9 })], snapshot('div'));
+    assert.strictEqual(specs.length, 1);
+  });
+
   test('should survive a single empty line', () => {
     const spec = mapOffense(offense({ line: 1 }), snapshot(''));
     assert.deepStrictEqual(spec.start, { line: 0, character: 0 });

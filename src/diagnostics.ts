@@ -17,9 +17,18 @@ function toSeverity(severity: 'error' | 'warning'): vscode.DiagnosticSeverity {
 /**
  * slim-lint's own top-level `exclude:` never applies to a --stdin-file-path run: the piped document
  * bypasses the file finder that would apply it. This setting is the honest replacement.
+ *
+ * A string pattern in a DocumentFilter is matched against the absolute path, so on its own only a
+ * `**`-led glob ever matches - and the globs a user brings over from `exclude:` are relative to the
+ * project. Each pattern is therefore tried against the workspace folder as well.
  */
 function isExcluded(document: vscode.TextDocument, patterns: readonly string[]): boolean {
-  return patterns.some((pattern) => vscode.languages.match({ pattern }, document) > 0);
+  const folder = vscode.workspace.getWorkspaceFolder(document.uri);
+  return patterns.some(
+    (pattern) =>
+      vscode.languages.match({ pattern }, document) > 0 ||
+      (folder !== undefined && vscode.languages.match({ pattern: new vscode.RelativePattern(folder, pattern) }, document) > 0)
+  );
 }
 
 export class DiagnosticsController implements vscode.Disposable {
@@ -36,6 +45,12 @@ export class DiagnosticsController implements vscode.Disposable {
   private readonly cancellations = new Map<string, { version: number; source: vscode.CancellationTokenSource }>();
   /** Guards against a killed process resolving after a newer request already published. */
   private readonly generations = new Map<string, number>();
+  /**
+   * One counter for every document rather than one each. forget() drops a document's entry while
+   * the document may stay open - lint.run switching off, a language-mode flip - and a per-document
+   * count would restart at the number the run it just abandoned still holds.
+   */
+  private lastGeneration = 0;
   /**
    * The text each document's published diagnostics were produced from.
    *
@@ -186,6 +201,10 @@ export class DiagnosticsController implements vscode.Disposable {
     const key = document.uri.toString();
     const source = document.getText();
     if (force) {
+      // The digest goes now, not when the forced run publishes: it may never get to. A run dropped
+      // as stale or answered with an unparseable report leaves the panel as it was, and a digest
+      // left beside it would let the next save reuse a report formed under the old rules.
+      this.publishedFor.delete(key);
       this.client.forget(document.uri);
     } else if (shouldReuseReport(this.publishedFor.get(key), source, force)) {
       // The diagnostics on screen were produced by slim-lint from exactly this text, under settings
@@ -194,7 +213,7 @@ export class DiagnosticsController implements vscode.Disposable {
       return;
     }
 
-    const generation = (this.generations.get(key) ?? 0) + 1;
+    const generation = ++this.lastGeneration;
     this.generations.set(key, generation);
 
     const version = document.version;
