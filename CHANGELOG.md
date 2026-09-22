@@ -5,6 +5,12 @@ All notable changes to the "Slim" extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-09-23
+
+### Changed
+
+- The extension is now called `Slim Syntax and Lint`. The Visual Studio Marketplace refuses a display name that is merely close to an existing one, and `Slim Language Support` was too close to the many other `... Language Support` extensions, so `1.0.2` could not be published there.
+
 ## [1.0.2] - 2026-09-23
 
 ### Changed
@@ -99,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Snippets: 239 Rails view helper snippets, offered only when the file belongs to a Rails project
 - Snippets: Slim control flow, filters, doctypes and comments
 
+[1.0.3]: https://github.com/cadenza-tech/slim/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/cadenza-tech/slim/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/cadenza-tech/slim/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/cadenza-tech/slim/compare/v0.0.1...v1.0.0
