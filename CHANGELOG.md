@@ -5,6 +5,12 @@ All notable changes to the "Slim" extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-09-23
+
+### Changed
+
+- The extension id is now `cadenza-tech.vscode-slim`. The Visual Studio Marketplace requires an extension name that no other publisher has taken, and `slim` was taken, so `1.0.0` could not be published there. An installation of the old `cadenza-tech.slim` from Open VSX does not update to the new id and has to be replaced.
+
 ## [1.0.0] - 2026-09-23
 
 ### Changed
@@ -87,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Snippets: 239 Rails view helper snippets, offered only when the file belongs to a Rails project
 - Snippets: Slim control flow, filters, doctypes and comments
 
+[1.0.1]: https://github.com/cadenza-tech/slim/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/cadenza-tech/slim/compare/v0.0.1...v1.0.0
 [0.0.1]: https://github.com/cadenza-tech/slim/compare/v0.0.0...v0.0.1
 [0.0.0]: https://github.com/cadenza-tech/slim/releases/tag/v0.0.0

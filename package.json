@@ -2,7 +2,7 @@
   "name": "vscode-slim",
   "displayName": "Slim",
   "description": "Slim language support with syntax highlighting, snippets, and linting powered by slim-lint",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "cadenza-tech",
   "license": "MIT",
   "icon": "images/icon.png",
